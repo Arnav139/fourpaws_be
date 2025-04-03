@@ -1,8 +1,10 @@
 import express from "express";
+import { VaccinationRecord, VaccinationSchedule,getAllPets } from "../controllers/animalController";
+
 
 const router = express.Router();
 
-router.get("/mockAnimalData", (req, res) => {
+router.get("/animalData", (req, res) => {
   const animalData = [
     {
       dog_images: [
@@ -85,5 +87,10 @@ router.get("/mockAnimalData", (req, res) => {
   ];
   res.json(animalData);
 });
+
+router.get("/allPets", getAllPets)
+
+router.get("/records", VaccinationRecord);
+router.get("/schedules", VaccinationSchedule);
 
 export default router;

@@ -3,6 +3,7 @@ import user from "./mockUserRoutes";
 import mockAnimalData from "./mockAnimalRoutes";
 import marketPlaceData from "./marketPlaceroutes";
 import feed from "./mockFeedRoute";
+import auth from "./authRoute"
 
 const router = express.Router();
 
@@ -22,6 +23,10 @@ const defaultRoutes = [
   {
     path : "/feed",
     route : feed
+  },
+  {
+    path : "/auth",
+    route : auth
   }
 ];
 

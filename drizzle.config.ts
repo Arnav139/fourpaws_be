@@ -1,4 +1,5 @@
-import {envConfigs} from "./src/config/envConfig"
+import dotenv from "dotenv";
+dotenv.config();
 
 
 export default ({
@@ -12,6 +13,6 @@ export default ({
     // database: envConfigs.db.database,
     // port: envConfigs.db.port,
     // ssl: envConfigs.db.ssl ,
-    url:envConfigs.db_url
-  },
+    url:process.env.DB_URL
+  }
 });

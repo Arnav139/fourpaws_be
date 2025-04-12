@@ -339,3 +339,7 @@ export const getAllPets = async (req: Request, res: Response) => {
 export const getAnimalData = async (req:Request, res:Response) => {
   res.json(animalData);
 }
+
+export const createNewPet = async (req:Request, res:Response) => {
+      // will be implemented in the future
+}

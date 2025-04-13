@@ -9,7 +9,7 @@ import postgreDb from './config/dbConfig';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 postgreDb
 
 app.use(express.json());
@@ -23,8 +23,8 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1', router);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 })
 
 

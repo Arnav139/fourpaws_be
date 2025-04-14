@@ -35,7 +35,7 @@ export const signJwt = (userId: number, email: string): string => {
 };
 
 // Verify JWT
-export const verifyJwt = (token: string): JwtPayload => {
+export const verifyJwt = async (token: string): Promise<JwtPayload> => {
   if (!token) {
     throw new Error("Token is required");
   }

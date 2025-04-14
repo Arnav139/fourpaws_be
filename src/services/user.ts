@@ -12,7 +12,7 @@ export default class UserService {
     return newUser;
   };
 
-  static userExists = async (email: string) => {
+  static getUser = async (email: string) => {
     const user = await postgreDb
       .select()
       .from(users)
@@ -20,8 +20,10 @@ export default class UserService {
       .limit(1)
       .execute();
 
-    return user.length > 0;
+    return user.length > 0 ? user[0] : null;
   };
+
+ 
 
 
   static getWalletAddressByEmail = async (email: string) => {

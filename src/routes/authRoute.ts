@@ -1,11 +1,14 @@
 import express from "express";
-import { registerUser, verifyOtp, updateWallet } from "../controllers/authController";
+import { verifyOtp, updateWallet,loginUser } from "../controllers/authController";
+import { verifyToken } from "../middlewares/authmiddlware";
+
 
 const router = express.Router();
 
-router.post("/register", registerUser)
+// router.post("/register", registerUser)
+router.post("/login",loginUser)
 router.post("/verify-otp", verifyOtp)
-router.post("/update-wallet", updateWallet)
+router.post("/update-wallet",verifyToken, updateWallet)
 
 export default router;
 

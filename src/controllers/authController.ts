@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import redisClient from "../config/redis";
 import { sendEmail } from "../utils/mail";
-import UserService from "../services/user";
+import UserService from "../services";
 import { signJwt } from "../config/jwtConfig";
 
 // POST /auth/register

@@ -7,5 +7,5 @@ router.post("/register", registerUser)
 router.post("/verify-otp", verifyOtp)
 router.post("/update-wallet", updateWallet)
 
-export default router
+export default router;
 

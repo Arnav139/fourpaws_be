@@ -9,7 +9,7 @@ export const registerUser = async (req: Request, res: any) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ message: "Email is required" });
+    return res.status(400).json({ success: false, error: "Email is required" });
   }
 
   try {
@@ -17,10 +17,13 @@ export const registerUser = async (req: Request, res: any) => {
     if (existingUser) {
       const walletAddress = await UserService.getWalletAddressByEmail(email);
       if (walletAddress) {
-        return res.status(400).json({ message: "User already exists" });
+        return res
+          .status(400)
+          .json({ success: false, error: "User already exists" });
       } else {
         return res.status(400).json({
-          message: "User already exists, but wallet address is missing",
+          success: false,
+          error: "User already exists, but wallet address is missing",
         });
       }
     }
@@ -138,9 +141,8 @@ export const updateWallet = async (req: Request, res: any) => {
     }
 
     // Check if wallet address is already set
-    const currentWalletAddress = await UserService.getWalletAddressByEmail(
-      email
-    );
+    const currentWalletAddress =
+      await UserService.getWalletAddressByEmail(email);
     if (currentWalletAddress) {
       return res.status(400).json({
         success: false,
@@ -151,12 +153,12 @@ export const updateWallet = async (req: Request, res: any) => {
     // Update the wallet address
     const updatedUser = await UserService.updateWalletAddress(
       email,
-      walletAddress
+      walletAddress,
     );
     return res.status(200).json({
       success: true,
       message: "Wallet address updated successfully",
-      data: updatedUser,
+      user: updatedUser,
     });
   } catch (error) {
     console.error("Error in updateWallet:", error);

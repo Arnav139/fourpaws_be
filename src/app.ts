@@ -3,6 +3,10 @@ import router from './routes/index';
 import dotenv from 'dotenv';
 import redisClient from './config/redis';
 import postgreDb from './config/dbConfig';
+import { jwtStrategy } from './config/token';
+import passport from "passport";
+import cors from "cors"
+
 
 
 
@@ -10,10 +14,12 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-postgreDb
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({ origin: "*"}));
+passport.use('jwt', jwtStrategy);
 
 
 

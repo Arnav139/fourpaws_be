@@ -51,7 +51,7 @@
     "uniqid": "^5.4.0",
     "viem": "^2.21.55",
     "winston": "^3.17.0",
-    "zod": "^3.22.4"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

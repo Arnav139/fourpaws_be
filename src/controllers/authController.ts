@@ -27,12 +27,14 @@ export default class authController{
         userExists = await UserService.insertUser(createBody.email.email);
         message = "User Signed Up";
         newUser = true;
+
       }
       const accessToken = await generateAuthTokens(userExists.id);
-      return res.status(200).send({status: true,message:message,data: accessToken,});
+      const user = {...userExists,accessToken}
+      return res.status(200).send({success: true,message:message,user});
     } catch (error) {
       console.log(error)
-      return res.status(500).send({status:false,message:"invalid  otp"});
+      return res.status(500).send({status:false,message:"invalid otp"});
     }
   }
   

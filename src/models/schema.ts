@@ -32,7 +32,7 @@ export const follows = pgTable('follows', {
 
 // pet
 
-export const pets = pgTable("pets", {
+export const pets : any = pgTable("pets", {
   id: serial("id").unique(),
   ownerId: integer('owner_id').references(() => users.id),
   registrationNumber: varchar('registration_number', { length: 100 }).unique(),

@@ -4,17 +4,14 @@ import { eq } from "drizzle-orm";
 
 export default class UserService {
 
-  static insertUser = async (user: any): Promise<any> => {
-    try {
-      console.log(user ,"userrr")
-      return await postgreDb.transaction(async(tx)=>{
-        const newUser:any = await tx.insert(users).values({...user}).returning();
-        if(!newUser.length) throw new Error('cannot create user');
-        return newUser[0];
-      });
-    } catch (error) {
-      throw new Error(error);
-    }
+  static insertUser = async (email: string): Promise<any> => {
+     try {
+      const newUser = await postgreDb.insert(users).values({ email }).returning();
+      return newUser[0];
+     } catch (error) {
+      console.error("Error inserting user:", error);
+      throw new Error("Failed to insert user");
+     }
   };
 
   static getUser = async (email: string) => {

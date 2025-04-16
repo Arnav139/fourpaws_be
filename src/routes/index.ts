@@ -13,7 +13,7 @@ const defaultRoutes = [
     route: user,
   },
   {
-    path: "/animal",
+    path: "/pets",
     route: mockAnimalData,
   },
   {

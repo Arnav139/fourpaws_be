@@ -1,3 +1,4 @@
 import UserService from "./user";
+import petServices from "./pets";
 
-export default UserService ;
+export  {UserService, petServices}; ;

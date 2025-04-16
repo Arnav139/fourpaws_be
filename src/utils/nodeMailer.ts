@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { envConfigs } from '../config/envconfig';
 import { verifyOtpHash } from '../config/common';
-import UserService from '../services';
+import {UserService} from '../services';
 
 export default class Mailer{
     static emailTemplate = (code:any) => `

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import redisClient from "../config/redis";
-import UserService from "../services";
+import {UserService} from "../services";
 import Mailer from "../utils/nodeMailer";
 import { generateAuthTokens } from "../config/token";
 import { otpToken } from "../config/common";
@@ -20,7 +20,11 @@ export default class authController{
             email:req['user']['email'],
           }
         };
-        userExists = await UserService.insertUser(createBody);
+        const dbUser = await UserService.getUser(createBody.email.email);
+        if (dbUser) {
+          return res.status(400).send({status:false,message:"User already exists"});
+        }
+        userExists = await UserService.insertUser(createBody.email.email);
         message = "User Signed Up";
         newUser = true;
       }

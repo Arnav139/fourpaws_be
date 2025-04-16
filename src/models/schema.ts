@@ -40,11 +40,20 @@ export const pets : any = pgTable("pets", {
   name: varchar("name", { length: 100 }).notNull(),
   species:varchar('species').notNull(),
   breed: varchar('breed').notNull(),
-  Image:varchar('Image').notNull(),
+  color : varchar('color').default('unknown'),
+  weight: integer('weight').default(0),
+  gender:varchar('gender').default('unknown'),
+  sterilized: boolean('sterilized').default(false),
+  size: varchar('size').default('small'),
+  age: integer('age').default(0),
+  bio : varchar('bio',{ length: 1000 }),
+  image:varchar('image').notNull(),
+  additionalImages:jsonb('additional_images').$type<string[]>(),
   dateOfBirth: date('date_of_birth'), // Store as YYYY-MM-DD
   metaData:jsonb('metaData').$type<object>(),
   personalityTraits: jsonb('personalityTraits').$type<string[]>(), // Array of strings
   allergies: jsonb('allergies').$type<string[]>(),
+  medications: jsonb('medications').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 },(table) => [{
   pk: primaryKey({ columns: [table.id] }),

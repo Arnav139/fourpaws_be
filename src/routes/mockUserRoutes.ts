@@ -1,6 +1,9 @@
 import express from "express";
+import { authenticateUser } from "../middlewares";
+import {userController} from "../controllers/index";
 
 const router = express.Router();
+
 const userData = [
   {
     id: "usr1",
@@ -17,8 +20,11 @@ const userData = [
   },
 ];
 
+router.get("/getUserData", authenticateUser, userController.getUser)
+
 router.get("/mockUserData", (req, res) => {
   res.json(userData);
 });
+
 
 export default router;

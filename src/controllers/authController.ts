@@ -12,29 +12,15 @@ export default class authController{
       const {otp} = req.body;
       console.log(req['user'],"in controller");
       let userExists = await Mailer.verifyOtp(req['user'] as any,otp);
-      let message = "User Logged In";
-      let newUser = false;
-      if (!userExists) {
-        const createBody:any = {
-          email:{
-            email:req['user']['email'],
-          }
-        };
-        const dbUser = await UserService.getUser(createBody.email.email);
-        if (dbUser) {
-          return res.status(400).send({status:false,message:"User already exists"});
+        if (!userExists) {
+          userExists = await UserService.insertUser(req['user']['email'] as string);
         }
-        userExists = await UserService.insertUser(createBody.email.email);
-        message = "User Signed Up";
-        newUser = true;
-
-      }
       const accessToken = await generateAuthTokens(userExists.id);
       const user = {...userExists,accessToken}
-      return res.status(200).send({success: true,message:message,user});
+      return res.status(200).send({success: true,message:"user logged  in",user});
     } catch (error) {
       console.log(error)
-      return res.status(500).send({status:false,message:"invalid otp"});
+      return res.status(500).send({success:false,error:"invalid otp"});
     }
   }
   
@@ -52,7 +38,7 @@ static loginUser = async (req: Request, res: any) => {
     try {
       const otp= await Mailer.sendEmail(email)
       let token = otpToken(email,otp);
-      return res.status(200).send({status:true,message:"OTP Sent SuccessFully",token})
+      return res.status(200).send({success:true,message:"OTP Sent SuccessFully",token})
   
     } catch (error) {
       console.error("Error in loginUser:", error);

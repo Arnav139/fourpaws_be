@@ -43,8 +43,12 @@ const mockCollectibles = [
     }
 ];
 
-export const getCollectibles =async (req: Request, res: Response) => {
-   res.json(mockCollectibles);
-};
+export default class marketPlaceController{
+
+  static getCollectibles =async (req: Request, res: Response) => {
+     res.json(mockCollectibles);
+  };
+}
+
 
 

@@ -1,9 +1,8 @@
 import express from "express";
-import { getCollectibles } from "../controllers/marketplaceController";
+import { marketPlaceController } from "../controllers";
 
 const router = express.Router();
 
-
-router.get("/items", getCollectibles);
+router.get("/items", marketPlaceController.getCollectibles);
 
 export default router;

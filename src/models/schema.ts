@@ -4,7 +4,7 @@ import {boolean,integer,jsonb,pgTable,serial,timestamp,varchar,text,pgEnum, prim
 
 // Users table
 export const users:any = pgTable("users", {
-  id: serial("id").unique(),
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }),
   email: varchar("email", { length: 255 }).unique(),
   walletAddress: varchar("wallet_address", { length: 255 }).unique(),
@@ -39,7 +39,7 @@ export const pets = pgTable("pets", {
   governmentRegistered: boolean('government_registered').default(false).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   species:varchar('species').notNull(),
-  breed: varchar('varchar').notNull(),
+  breed: varchar('breed').notNull(),
   Image:varchar('Image').notNull(),
   dateOfBirth: date('date_of_birth'), // Store as YYYY-MM-DD
   metaData:jsonb('metaData').$type<object>(),
@@ -60,14 +60,13 @@ export const vaccination =pgTable('vaccination_data',{
   vaccineType:varchar('vaccineType'),
   documentUrl:varchar('document_url'),
   batchNumber:varchar('batch_number'),
-  nextAppointmentDate:timestamp('created_at', { withTimezone: true }).notNull(),
+  nextAppointmentDate:timestamp('next_Appointment_Date', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 },(table) => [{
   pk: primaryKey({ columns: [table.id] }),
 }]);
 
-
-export const heathcheckup =pgTable('heath_checkup',{
+export const healthcheckup =pgTable('health_checkup',{
   id:serial("id").unique(),
   petId:integer('pet_id').references(() => pets.id),
   checkupType:varchar('checkup_type'),
@@ -77,16 +76,14 @@ export const heathcheckup =pgTable('heath_checkup',{
   clinic:varchar('clinic'),
   medications:jsonb('medications').$type<string[]>(),
   notes:varchar('notes'),
-  nextAppointmentDate:timestamp('created_at', { withTimezone: true }).notNull(),
+  nextAppointmentDate:timestamp('nextAppointmentDate', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 },(table) => [{
   pk: primaryKey({ columns: [table.id] }),
 }]);
 
-
-
 export const posts = pgTable('posts',{
-  id: serial("id").unique(),
+  id: serial("id").primaryKey(),
   authorId: integer('author_id').references(() => users.id),
   // petId: integer('pet_id').references(() => pets.id),
   content: text('content').notNull(),
@@ -96,7 +93,6 @@ export const posts = pgTable('posts',{
 },(table) => [{
   pk: primaryKey({ columns: [table.id] }),
 }]);
-
 
 export const collectibles = pgTable('collectibles', {
   id: serial('id').primaryKey(),
@@ -135,7 +131,6 @@ export const postLikes = pgTable('post_likes', {
 (table) => [{
     pk: primaryKey({ columns: [table.id] }),
 }])
-
 
 // User's collectibles (junction table for many-to-many relationship)
 export const userCollectibles = pgTable('user_collectibles', {
@@ -183,7 +178,7 @@ export const petsRelations = relations(pets, ({ one, many }) => ({
     references: [users.id],
   }),
   vaccination:many(vaccination),
-  medical:many(heathcheckup)
+  medical:many(healthcheckup)
   // posts: many(posts)
 }));
 
@@ -258,9 +253,9 @@ export const vaccinationRelations = relations(vaccination, ({ one }) => ({
   }),
 }));
 
-export const heathcheckupRealations = relations(heathcheckup, ({ one }) => ({
+export const heathcheckupRealations = relations(healthcheckup, ({ one }) => ({
   pet: one(pets, {
-    fields: [heathcheckup.petId],
+    fields: [healthcheckup.petId],
     references: [pets.id],
   }),
 }));

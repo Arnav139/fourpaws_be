@@ -858,69 +858,72 @@ const mockComments: Comment[] = [
   },
 ];
 
-export const getCommentsByPostId = async (req: Request, res : any) => {
-    try {
-      const { postId } = req.params;
-  
-      const cursor = req.query.cursor as string | undefined;
-      const limit = parseInt(req.query.limit as string) || 10; 
-  
-      const postComments = mockComments.filter((c) => c.postId === postId);
+export default class feedController{
 
-      if (postComments.length === 0) {
-        return res.status(200).json({
-          comments: [],
-          hasMore: false,
-          nextCursor: undefined,
-        });
+  static getCommentsByPostId = async (req: Request, res : any) => {
+      try {
+        const { postId } = req.params;
+    
+        const cursor = req.query.cursor as string | undefined;
+        const limit = parseInt(req.query.limit as string) || 10; 
+    
+        const postComments = mockComments.filter((c) => c.postId === postId);
+  
+        if (postComments.length === 0) {
+          return res.status(200).json({
+            comments: [],
+            hasMore: false,
+            nextCursor: undefined,
+          });
+        }
+  
+        postComments.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+  
+        const startIndex = cursor ? parseInt(cursor) : 0;
+        const endIndex = startIndex + limit;
+        const paginatedComments = postComments.slice(startIndex, endIndex);
+        const hasMore = endIndex < postComments.length;
+        const nextCursor = hasMore ? endIndex.toString() : undefined;
+    
+        // Send the response
+        const response: CommentsResponse = {
+          comments: paginatedComments,
+          hasMore,
+          nextCursor,
+        };
+        res.status(200).json(response);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+        res.status(500).json({ error: 'Internal server error' });
       }
-
-      postComments.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
+    };
+  
+  static getPosts = async (req: Request, res: Response) => {
+    try {
+      const cursor = req.query.cursor as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 10;
+  
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + limit;
-      const paginatedComments = postComments.slice(startIndex, endIndex);
-      const hasMore = endIndex < postComments.length;
+      const paginatedPosts = mockPosts.slice(startIndex, endIndex);
+      const hasMore = endIndex < mockPosts.length;
       const nextCursor = hasMore ? endIndex.toString() : undefined;
   
-      // Send the response
-      const response: CommentsResponse = {
-        comments: paginatedComments,
+      const response: PostsResponse = {
+        posts: paginatedPosts,
         hasMore,
         nextCursor,
       };
       res.status(200).json(response);
     } catch (error) {
-      console.error('Error fetching comments:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error fetching posts:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   };
-
-export const getPosts = async (req: Request, res: Response) => {
-  try {
-    const cursor = req.query.cursor as string | undefined;
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    const startIndex = cursor ? parseInt(cursor) : 0;
-    const endIndex = startIndex + limit;
-    const paginatedPosts = mockPosts.slice(startIndex, endIndex);
-    const hasMore = endIndex < mockPosts.length;
-    const nextCursor = hasMore ? endIndex.toString() : undefined;
-
-    const response: PostsResponse = {
-      posts: paginatedPosts,
-      hasMore,
-      nextCursor,
-    };
-    res.status(200).json(response);
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-export const getStories = async (req: Request, res: Response) => {
-  res.status(200).json(mockStories);
-};
+  
+  static getStories = async (req: Request, res: Response) => {
+    res.status(200).json(mockStories);
+  };
+}

@@ -1,21 +1,15 @@
 import express from "express";
-import {
-  getAnimalData,
-  getAllPets,
-  VaccinationRecord,
-  VaccinationSchedule,
-  createNewPet,
-} from "../controllers/animalController";
+import { animalController } from "../controllers";
 
 const router = express.Router();
 
-router.get("/animalData", getAnimalData);
+router.get("/animalData", animalController.getAnimalData);
 
-router.get("/allPets", getAllPets);
+router.get("/allPets", animalController.getAllPets);
 
-router.get("/records", VaccinationRecord);
-router.get("/schedules", VaccinationSchedule);
+router.get("/records", animalController.VaccinationRecord);
+router.get("/schedules", animalController.VaccinationSchedule);
 
-router.post("/pet", createNewPet)
+router.post("/pet", animalController.createNewPet)
 
 export default router;

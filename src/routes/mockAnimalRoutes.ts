@@ -1,27 +1,27 @@
 import express from "express";
 import { animalController } from "../controllers";
-import { authenticateUser } from "../middlewares";
+import { authenticateUser, validateRequest } from "../middlewares";
 import upload from "../middlewares/multer";
-
+import { PetValidators } from "../validators/index";
 
 const router = express.Router();
 
-router.get("/animalData", animalController.getAnimalData);
+router.get("/animalData",validateRequest(PetValidators.validateGetAnimalData),animalController.getAnimalData);
 
-router.get("/allPets", animalController.getAllPets);
+router.get("/allPets",authenticateUser,animalController.getAllPets);
 
-router.get("/records", animalController.VaccinationRecord);
-router.get("/schedules", animalController.VaccinationSchedule);
+router.get("/records",validateRequest(PetValidators.validateVaccinationRecord), animalController.VaccinationRecord);
+router.get("/schedules",validateRequest(PetValidators.validateVaccinationSchedule), animalController.VaccinationSchedule);
 
-router.post(
-    "/new",
-    authenticateUser,
-    upload.fields([
+router.post("/new",authenticateUser,upload.fields([
       { name: "image", maxCount: 1 },
       { name: "additionalImages", maxCount: 5 }, //adjust max count
     ]),
+    validateRequest(PetValidators.validateCreateNewPet),
     animalController.createNewPet
   );
+
+
   
 
 export default router;

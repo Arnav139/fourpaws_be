@@ -34,7 +34,7 @@ export const follows = pgTable('follows', {
 export const pets: any = pgTable("pets", {
   id: serial("id").unique(),
   ownerId: integer('owner_id').references(() => users.id),
-  registrationNumber: varchar('registration_number', { length: 100 }).unique(),
+  registrationNumber: varchar('registration_number', { length: 100 }),
   governmentRegistered: boolean('government_registered').default(false).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   species: varchar('species').notNull(),

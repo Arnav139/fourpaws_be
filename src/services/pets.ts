@@ -4,6 +4,7 @@ import { pets } from "../models/schema";
 
 export default class petServices {
   static createNewPet = async (
+    ownerId : string,
     registrationNumber: string,
     governmentRegistered: boolean,
     name: string,
@@ -24,6 +25,7 @@ export default class petServices {
       const newPet = await postgreDb
         .insert(pets)
         .values({
+          ownerId ,
           registrationNumber,
           governmentRegistered,
           name,
@@ -41,14 +43,13 @@ export default class petServices {
           medications,
         })
         .returning();
-  
+
       return newPet[0];
     } catch (error) {
       console.error("Error creating new pet:", error);
       throw new Error("Database query failed");
     }
   };
-  
 
   static getPetByRegistrationNumber = async (
     registrationNumber: string
@@ -63,6 +64,20 @@ export default class petServices {
       return pet[0];
     } catch (error) {
       console.error("Error fetching pet by registration number:", error);
+      throw new Error("Database query failed");
+    }
+  };
+
+  static getAllPets = async (userId: number): Promise<any> => {
+    try {
+      const petsList = await postgreDb
+        .select()
+        .from(pets)
+        .where(eq(pets.ownerId, userId))
+        .execute();
+      return petsList;
+    } catch (error) {
+      console.error("Error fetching all pets:", error);
       throw new Error("Database query failed");
     }
   };

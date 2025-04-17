@@ -377,6 +377,7 @@ export default class animalController {
 
   static createNewPet = async (req: Request, res: Response): Promise<any> => {
     try {
+      console.log(req,"request")
       const {
         registrationNumber,
         governmentRegistered,
@@ -392,23 +393,32 @@ export default class animalController {
         allergies,
         medications,
       } = req.body;
+
+       console.log(req.files, "req.file");
   
       if (
-        !registrationNumber ||
+        (
+        !governmentRegistered ||
         !name ||
         !species ||
         !breed ||
-        !dateOfBirth ||
-        !metaData ||
-        !personalityTraits ||
-        !allergies ||
+        !metaData  ||      
         !req.files ||
         !("image" in req.files)
-      ) {
-        return res.status(400).json({ message: "Required fields missing" });
+      )) {
+        console.log(registrationNumber , governmentRegistered,
+        name ,
+        species ,
+        breed ,
+        dateOfBirth ,
+        metaData ,
+        personalityTraits ,
+        allergies, "error");
+        return res.status(400).json({success:false, error: "Required fields missing"});
       }
   
       const imageFile = (req.files as any).image[0];
+      console.log(imageFile, "imagefile");
       const mainImageDataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString("base64")}`;
       const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
         folder: "pets",
@@ -436,20 +446,20 @@ export default class animalController {
       };
   
       const newPet = await petServices.createNewPet(
-        registrationNumber,
-        governmentRegistered === "true",
+        registrationNumber || "",
+        governmentRegistered,
         name,
         species,
         breed,
         gender || "unknown",
-        sterilized === "true",
+        sterilized,
         bio || null,
         mainImageUpload.secure_url,
         additionalImages,
         dateOfBirth,
         fullMetaData,
         JSON.parse(personalityTraits),
-        JSON.parse(allergies),
+        JSON.parse(allergies) || [],
         medications ? JSON.parse(medications) : []
       );
   

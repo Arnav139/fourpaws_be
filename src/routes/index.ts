@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import user from "./mockUserRoutes";
-import mockAnimalData from "./mockAnimalRoutes";
+import pets from "./mockAnimalRoutes";
 import marketPlaceData from "./marketPlaceroutes";
 import feed from "./mockFeedRoute";
 import auth from "./authRoute"
@@ -14,7 +14,7 @@ const defaultRoutes = [
   },
   {
     path: "/pets",
-    route: mockAnimalData,
+    route: pets,
   },
   {
     path: "/marketplace",

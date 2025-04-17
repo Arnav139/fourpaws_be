@@ -31,33 +31,29 @@ export const follows = pgTable('follows', {
 }]);
 
 // pet
-
-export const pets : any = pgTable("pets", {
+export const pets: any = pgTable("pets", {
   id: serial("id").unique(),
   ownerId: integer('owner_id').references(() => users.id),
   registrationNumber: varchar('registration_number', { length: 100 }).unique(),
   governmentRegistered: boolean('government_registered').default(false).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
-  species:varchar('species').notNull(),
+  species: varchar('species').notNull(),
   breed: varchar('breed').notNull(),
-  color : varchar('color').default('unknown'),
-  weight: integer('weight').default(0),
-  gender:varchar('gender').default('unknown'),
+  gender: varchar('gender').default('unknown'),
   sterilized: boolean('sterilized').default(false),
-  size: varchar('size').default('small'),
-  age: integer('age').default(0),
-  bio : varchar('bio',{ length: 1000 }),
-  image:varchar('image').notNull(),
-  additionalImages:jsonb('additional_images').$type<string[]>(),
-  dateOfBirth: date('date_of_birth'), // Store as YYYY-MM-DD
-  metaData:jsonb('metaData').$type<object>(),
-  personalityTraits: jsonb('personalityTraits').$type<string[]>(), // Array of strings
+  bio: varchar('bio', { length: 1000 }),
+  image: varchar('image').notNull(),
+  additionalImages: jsonb('additional_images').$type<string[]>(),
+  dateOfBirth: date('date_of_birth'),
+  metaData: jsonb('metaData').$type<object>(),
+  personalityTraits: jsonb('personalityTraits').$type<string[]>(),
   allergies: jsonb('allergies').$type<string[]>(),
   medications: jsonb('medications').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-},(table) => [{
+}, (table) => [{
   pk: primaryKey({ columns: [table.id] }),
 }]);
+
 
 export const vaccination =pgTable('vaccination_data',{
   id:serial("id").unique(),

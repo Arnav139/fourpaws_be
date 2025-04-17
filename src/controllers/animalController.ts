@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import petServices from "../services/pets";
+import cloudinary from "../config/cloudinary";
 
 const vaccinationRecord = [
   {
@@ -374,7 +375,7 @@ export default class animalController {
     res.json(animalData);
   };
 
-  static createNewPet = async (req: Request, res: any) => {
+  static createNewPet = async (req: Request, res: Response): Promise<any> => {
     try {
       const {
         registrationNumber,
@@ -382,53 +383,85 @@ export default class animalController {
         name,
         species,
         breed,
-        Image,
+        gender,
+        sterilized,
+        bio,
         dateOfBirth,
         metaData,
         personalityTraits,
         allergies,
+        medications,
       } = req.body;
-
-      // Validation
+  
       if (
         !registrationNumber ||
         !name ||
         !species ||
         !breed ||
-        !Image ||
         !dateOfBirth ||
         !metaData ||
         !personalityTraits ||
-        !allergies
+        !allergies ||
+        !req.files ||
+        !("image" in req.files)
       ) {
-        return res.status(400).json({ message: "All fields are required" });
+        return res.status(400).json({ message: "Required fields missing" });
       }
-
-      // Create pet
+  
+      const imageFile = (req.files as any).image[0];
+      const mainImageDataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString("base64")}`;
+      const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
+        folder: "pets",
+      });
+  
+      const additionalImagesFiles = (req.files as any).additionalImages || [];
+      const additionalImages: string[] = [];
+  
+      for (const file of additionalImagesFiles) {
+        const fileDataUri = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+        const upload = await cloudinary.uploader.upload(fileDataUri, {
+          folder: "pets/additional",
+        });
+        additionalImages.push(upload.secure_url);
+      }
+  
+      // Extract and merge fields into metaData
+      const parsedMetaData = JSON.parse(metaData);
+      const fullMetaData = {
+        ...parsedMetaData,
+        color: req.body.color || "unknown",
+        weight: Number(req.body.weight) || 0,
+        size: req.body.size || "small",
+        age: Number(req.body.age) || 0,
+      };
+  
       const newPet = await petServices.createNewPet(
         registrationNumber,
-        governmentRegistered,
+        governmentRegistered === "true",
         name,
         species,
         breed,
-        Image,
+        gender || "unknown",
+        sterilized === "true",
+        bio || null,
+        mainImageUpload.secure_url,
+        additionalImages,
         dateOfBirth,
-        metaData,
-        personalityTraits,
-        allergies
+        fullMetaData,
+        JSON.parse(personalityTraits),
+        JSON.parse(allergies),
+        medications ? JSON.parse(medications) : []
       );
-
-      if (!newPet) {
-        return res.status(500).json({ message: "Failed to create new pet" });
-      }
-
+  
       return res.status(201).json({
+        success: true,
         message: "New pet created successfully",
         pet: newPet,
       });
     } catch (error) {
       console.error("Error creating new pet:", error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      return res.status(500).json({ success: false, error: "Internal Server Error" });
     }
   };
+  
 }

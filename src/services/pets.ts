@@ -5,15 +5,20 @@ import { pets } from "../models/schema";
 export default class petServices {
   static createNewPet = async (
     registrationNumber: string,
-    governmentRegistered: string,
+    governmentRegistered: boolean,
     name: string,
     species: string,
     breed: string,
-    Image: string,
+    gender: string,
+    sterilized: boolean,
+    bio: string | null,
+    image: string,
+    additionalImages: string[],
     dateOfBirth: string,
-    metaData: string,
-    personalityTraits: string,
-    allergies: string
+    metaData: object,
+    personalityTraits: string[],
+    allergies: string[],
+    medications: string[]
   ): Promise<any> => {
     try {
       const newPet = await postgreDb
@@ -24,20 +29,26 @@ export default class petServices {
           name,
           species,
           breed,
-          Image,
+          gender,
+          sterilized,
+          bio,
+          image,
+          additionalImages,
           dateOfBirth,
           metaData,
           personalityTraits,
           allergies,
+          medications,
         })
         .returning();
-
+  
       return newPet[0];
     } catch (error) {
       console.error("Error creating new pet:", error);
       throw new Error("Database query failed");
     }
   };
+  
 
   static getPetByRegistrationNumber = async (
     registrationNumber: string

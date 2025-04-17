@@ -9,11 +9,10 @@ export default class authController {
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
       const { otp } = req.body;
-      console.log(req["user"], "in controller");
       let userExists = await Mailer.verifyOtp(req["user"] as any, otp);
       if (!userExists) {
         userExists = await UserService.insertUser(
-          req["user"]["email"] as string,
+          req["user"]["email"] as string
         );
       }
       const accessToken = generateAuthTokens(userExists.id);
@@ -75,8 +74,9 @@ export default class authController {
       }
 
       // Check if wallet address is already set
-      const currentWalletAddress =
-        await UserService.getWalletAddressByEmail(email);
+      const currentWalletAddress = await UserService.getWalletAddressByEmail(
+        email
+      );
       if (currentWalletAddress) {
         return res.status(400).json({
           success: false,
@@ -87,7 +87,7 @@ export default class authController {
       // Update the wallet address
       const updatedUser = await UserService.updateWalletAddress(
         email,
-        walletAddress,
+        walletAddress
       );
       return res.status(200).json({
         success: true,

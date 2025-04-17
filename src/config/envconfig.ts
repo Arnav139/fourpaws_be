@@ -11,7 +11,9 @@ const envVarsSchema = z.object({
   JWT_SECRET: z.string(),
   EXPIREATION_MINUTE:z.string(),
   REDIS_URL:z.string(),
-
+  CLOUDINARY_CLOUD_NAME:z.string(),
+  CLOUDINARY_API_KEY:z.string(),  
+  CLOUDINARY_API_SECRET:z.string(),
 });
 
 const envVars = envVarsSchema.parse(process.env);
@@ -21,7 +23,10 @@ export const envConfigs = {
   db_url:envVars.DB_URL,
   accessExpirationMinutes:envVars.EXPIREATION_MINUTE,
   nodemailerApikey:envVars.NODEMAILER_PASSKEY,
-  nodemailerUser:envVars.NODEMAILER_USER
+  nodemailerUser:envVars.NODEMAILER_USER,
+  cloudinaryCloudName:envVars.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey:envVars.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret:envVars.CLOUDINARY_API_SECRET,
 
 };
 

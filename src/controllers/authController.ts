@@ -12,7 +12,7 @@ export default class authController {
       let userExists = await Mailer.verifyOtp(req["user"] as any, otp);
       if (!userExists) {
         userExists = await UserService.insertUser(
-          req["user"]["email"] as string
+          req["user"]["email"] as string,
         );
       }
       const accessToken = generateAuthTokens(userExists.id);
@@ -21,7 +21,7 @@ export default class authController {
         .status(200)
         .send({ success: true, message: "user logged  in", user });
     } catch (error) {
-      console.log(error);
+      console.log("Error verifying OTP:", error);
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
   };
@@ -74,9 +74,8 @@ export default class authController {
       }
 
       // Check if wallet address is already set
-      const currentWalletAddress = await UserService.getWalletAddressByEmail(
-        email
-      );
+      const currentWalletAddress =
+        await UserService.getWalletAddressByEmail(email);
       if (currentWalletAddress) {
         return res.status(400).json({
           success: false,
@@ -87,7 +86,7 @@ export default class authController {
       // Update the wallet address
       const updatedUser = await UserService.updateWalletAddress(
         email,
-        walletAddress
+        walletAddress,
       );
       return res.status(200).json({
         success: true,

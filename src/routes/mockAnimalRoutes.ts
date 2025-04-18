@@ -13,14 +13,23 @@ router.get("/allPets",authenticateUser,animalController.getAllPets);
 router.get("/records",validateRequest(PetValidators.validateVaccinationRecord), animalController.VaccinationRecord);
 router.get("/schedules",validateRequest(PetValidators.validateVaccinationSchedule), animalController.VaccinationSchedule);
 
-router.post("/new",authenticateUser,upload.fields([
-      { name: "image", maxCount: 1 },
-      { name: "additionalImages", maxCount: 6 }, //adjust max count
-    ]),
-    validateRequest(PetValidators.validateCreateNewPet),
-    animalController.createNewPet
-  );
-
+router.post(
+  "/new",
+  authenticateUser,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "additionalImages", maxCount: 6 },
+    { name: "veterinaryHealthCard", maxCount: 1 },
+    { name: "vaccinationCard", maxCount: 1 },
+    { name: "passport", maxCount: 1 },
+    { name: "imageWithOwner", maxCount: 1 },
+     {name: "ownerIdProof", maxCount: 1},
+    { name: "veterinaryHealthCertificate", maxCount: 1 },
+    { name: "sterilizationCard", maxCount: 1 },
+  ]),
+  validateRequest(PetValidators.validateCreateNewPet),
+  animalController.createNewPet
+);
 
   
 

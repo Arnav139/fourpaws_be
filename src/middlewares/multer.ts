@@ -9,7 +9,7 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: FileFilterCallback
 ): void => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -22,7 +22,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 2* 1024 * 1024, // 2MB
   },
 });
 

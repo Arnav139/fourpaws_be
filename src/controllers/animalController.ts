@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import petServices from "../services/pets";
+import petServices, { petDocuments } from "../services/pets";
 import cloudinary from "../config/cloudinary";
 
 const vaccinationRecord = [
@@ -371,28 +371,33 @@ export default class animalController {
   //   // }
   // };
 
-  static getAllPets = async (req: Request, res: Response):Promise<any> => {
-      try {
-        const userId = req['user']['userId'];
-        console.log(userId,"User ID")
-        if(!userId) {
-          return res.status(400).json({success:false, error: "User ID is required"});
-        }
-        const pets = await petServices.getAllPets(parseInt(userId));
-        if (!pets) {
-          return res.status(404).json({success:false, error: "No pets found"});
-        }
-        console.log(pets,"Pets")
-
-        const myPets = pets.map((pet: any) => ({...pet, ...pet.metaData, photoUrl: pet.image}));
-        console.log(myPets,"My Pets")
-        res.status(200).json({success:true, data: myPets});
-      } catch (error) {
-        console.error("Error fetching pets:", error);
-        res.status(500).json({success:false, error: "Server Error"});
-        
+  static getAllPets = async (req: Request, res: Response): Promise<any> => {
+    try {
+      const userId = req["user"]["userId"];
+      console.log(userId, "User ID");
+      if (!userId) {
+        return res
+          .status(400)
+          .json({ success: false, error: "User ID is required" });
       }
+      const pets = await petServices.getAllPets(parseInt(userId));
+      if (!pets) {
+        return res.status(404).json({ success: false, error: "No pets found" });
+      }
+      console.log(pets, "Pets");
+
+      const myPets = pets.map((pet: any) => ({
+        ...pet,
+        ...pet.metaData,
+        photoUrl: pet.image,
+      }));
+      console.log(myPets, "My Pets");
+      res.status(200).json({ success: true, data: myPets });
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+      res.status(500).json({ success: false, error: "Server Error" });
     }
+  };
 
   static getAnimalData = async (req: Request, res: Response) => {
     res.json(animalData);
@@ -418,37 +423,45 @@ export default class animalController {
       } = req.body;
       const userid = req["user"]["userId"];
       console.log("User ID", userid);
-  
+      console.log(req.files, "Files");
       if (
-        (
         !governmentRegistered ||
         !name ||
         !species ||
         !breed ||
-        !metaData  ||    
+        !metaData ||
         !req.files ||
         !("image" in req.files)
-      )) {
-        return res.status(400).json({success:false, error: "Required fields missing"});
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Required fields missing" });
       }
-     
+
       const imageFile = (req.files as any).image[0];
-      const mainImageDataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString("base64")}`;
-      const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
-        folder: "pets",
-      });
-  
+      const mainImageDataUri = `data:${
+        imageFile.mimetype
+      };base64,${imageFile.buffer.toString("base64")}`;
+      const mainImageUpload = await cloudinary.uploader.upload(
+        mainImageDataUri,
+        {
+          folder: "pets",
+        }
+      );
+
       const additionalImagesFiles = (req.files as any).additionalImages || [];
       const additionalImages: string[] = [];
-  
+
       for (const file of additionalImagesFiles) {
-        const fileDataUri = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+        const fileDataUri = `data:${
+          file.mimetype
+        };base64,${file.buffer.toString("base64")}`;
         const upload = await cloudinary.uploader.upload(fileDataUri, {
           folder: "pets/additional",
         });
         additionalImages.push(upload.secure_url);
       }
-  
+
       // Extract and merge fields into metaData
       const parsedMetaData = JSON.parse(metaData);
       const fullMetaData = {
@@ -458,7 +471,39 @@ export default class animalController {
         size: req.body.size || "small",
         age: Number(req.body.age) || 0,
       };
-  
+
+      // Upload pet documents
+      const documentFields = [
+        "veterinaryHealthCard",
+        "vaccinationCard",
+        "passport",
+        "imageWithOwner",
+        "ownerIdProof",
+        "veterinaryHealthCertificate",
+        "sterilizationCard",
+      ];
+
+      const documents: Record<string, string> = {};
+
+      for (const field of documentFields) {
+        const file = (req.files as any)?.[field]?.[0];
+
+        if (file) {
+          const isPDF = file.mimetype === "application/pdf";
+          const fileDataUri = isPDF
+            ? `data:application/pdf;base64,${file.buffer.toString("base64")}`
+            : `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+          const upload = await cloudinary.uploader.upload(fileDataUri, {
+            folder: "pets/documents",
+            resource_type: isPDF ? "raw" : "image",
+            format: isPDF ? "pdf" : undefined,
+          });
+
+          documents[field] = upload.secure_url;
+        }
+      }
+
       const newPet = await petServices.createNewPet(
         userid,
         registrationNumber.trim().length > 0 ? registrationNumber : undefined,
@@ -475,9 +520,10 @@ export default class animalController {
         fullMetaData,
         JSON.parse(personalityTraits),
         JSON.parse(allergies) || [],
-        medications ? JSON.parse(medications) : []
+        medications ? JSON.parse(medications) : [],
+        documents as unknown as  petDocuments
       );
-  
+
       return res.status(201).json({
         success: true,
         message: "New pet created successfully",
@@ -485,8 +531,9 @@ export default class animalController {
       });
     } catch (error) {
       console.error("Error creating new pet:", error);
-      return res.status(500).json({ success: false, error: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ success: false, error: "Internal Server Error" });
     }
   };
-  
 }

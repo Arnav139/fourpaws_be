@@ -1,6 +1,16 @@
 import { eq } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
 import { pets } from "../models/schema";
+ 
+
+export interface petDocuments{
+  veterinaryHealthCard: string;
+  vaccinationCard: string;
+  passport: string;
+  imageWithOwner: string;
+  veterinaryHealthCertificate: string;
+  sterilizationCard: string;
+} 
 
 export default class petServices {
   static createNewPet = async (
@@ -19,7 +29,8 @@ export default class petServices {
     metaData: object,
     personalityTraits: string[],
     allergies: string[],
-    medications: string[]
+    medications: string[],
+    documents: petDocuments
   ): Promise<any> => {
     try {
       const newPet = await postgreDb
@@ -41,6 +52,7 @@ export default class petServices {
           personalityTraits,
           allergies,
           medications,
+          documents
         })
         .returning();
 

@@ -121,6 +121,14 @@ export default class PetValidators {
           { message: "medications must be a valid JSON array" }
         )
         .optional(),
+        documents:z.object({
+          "veterinaryHealthCard" : z.string(),
+          "vaccinationCard" : z.string(),
+          "passport" : z.string(),
+          "imageWithOwner" : z.string(),
+          "ownerIdProof" : z.string(),
+          "sterilizationCard" : z.string()
+        }).optional()
     }).strict(),
     params: z.object({}).strict(),
     query: z.object({}).strict(),

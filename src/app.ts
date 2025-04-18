@@ -6,6 +6,7 @@ import postgreDb from './config/dbConfig';
 import { jwtStrategy } from './config/token';
 import passport from "passport";
 import cors from "cors"
+import { envConfigs } from './config/envconfig';
 
 
 
@@ -13,7 +14,7 @@ import cors from "cors"
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = envConfigs.port || 3000;
 
 
 app.use(express.json());
@@ -29,7 +30,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1', router);
 
-app.listen(port, () => {
+app.listen(port , () => {
   console.log(`Server is running on http://localhost:${port}`);
 })
 

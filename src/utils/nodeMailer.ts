@@ -57,10 +57,10 @@ export default class Mailer {
 
       const info = await transporter.sendMail(mailOptions);
 
-      console.log("Email sent: %s", info.messageId);
+    
       return otp;
     } catch (error) {
-      console.error("Error sending email:", error);
+
       throw error;
     }
   };
@@ -69,12 +69,7 @@ export default class Mailer {
     decodedTokenData: any,
     otp: string,
   ): Promise<any> => {
-    console.log(
-      'decodedTokenData["otp"],decodedTokenData["email"],otp',
-      decodedTokenData["otp"],
-      decodedTokenData["email"],
-      otp,
-    );
+   
     try {
       if (
         !verifyOtpHash(decodedTokenData["otp"], decodedTokenData["email"], otp)

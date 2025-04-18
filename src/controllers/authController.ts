@@ -21,7 +21,7 @@ export default class authController {
         .status(200)
         .send({ success: true, message: "user logged  in", user });
     } catch (error) {
-      console.log("Error verifying OTP:", error);
+
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
   };

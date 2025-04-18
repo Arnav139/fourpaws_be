@@ -374,7 +374,6 @@ export default class animalController {
   static getAllPets = async (req: Request, res: Response): Promise<any> => {
     try {
       const userId = req["user"]["userId"];
-      console.log(userId, "User ID");
       if (!userId) {
         return res
           .status(400)
@@ -384,14 +383,12 @@ export default class animalController {
       if (!pets) {
         return res.status(404).json({ success: false, error: "No pets found" });
       }
-      console.log(pets, "Pets");
 
       const myPets = pets.map((pet: any) => ({
         ...pet,
         ...pet.metaData,
         photoUrl: pet.image,
       }));
-      console.log(myPets, "My Pets");
       res.status(200).json({ success: true, data: myPets });
     } catch (error) {
       console.error("Error fetching pets:", error);
@@ -405,7 +402,7 @@ export default class animalController {
 
   static createNewPet = async (req: Request, res: Response): Promise<any> => {
     try {
-      // console.log(req,"request")
+    
       const {
         registrationNumber,
         governmentRegistered,
@@ -422,8 +419,6 @@ export default class animalController {
         medications,
       } = req.body;
       const userid = req["user"]["userId"];
-      console.log("User ID", userid);
-      console.log(req.files, "Files");
       if (
         !governmentRegistered ||
         !name ||

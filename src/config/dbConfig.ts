@@ -1,11 +1,11 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Client } from "pg";
 import * as schema from "../models/schema";
-import dotenv from "dotenv";
-dotenv.config();
+import { envConfigs } from "./envconfig";
 
 
-export const client = new Client(process.env.DB_URL as string);
+
+export const client = new Client(envConfigs.db_url)
 
 client
 .connect()

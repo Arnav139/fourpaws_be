@@ -532,7 +532,7 @@ export default class animalController {
       console.error("Error creating new pet:", error);
       return res
         .status(500)
-        .json({ success: false, error: "Internal Server Error" });
+        .json({ success: false, error: error.message || "Server Error" });
     }
   };
 }

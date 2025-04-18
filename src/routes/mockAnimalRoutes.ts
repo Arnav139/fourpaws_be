@@ -15,7 +15,7 @@ router.get("/schedules",validateRequest(PetValidators.validateVaccinationSchedul
 
 router.post("/new",authenticateUser,upload.fields([
       { name: "image", maxCount: 1 },
-      { name: "additionalImages", maxCount: 5 }, //adjust max count
+      { name: "additionalImages", maxCount: 6 }, //adjust max count
     ]),
     validateRequest(PetValidators.validateCreateNewPet),
     animalController.createNewPet

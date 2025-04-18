@@ -50,6 +50,14 @@ export const pets: any = pgTable("pets", {
   allergies: jsonb('allergies').$type<string[]>(),
   medications: jsonb('medications').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  // new fields
+  // veterinaryHealthCard : varchar('veterinary_health_card').default('No'),
+  // vaccinationCard : varchar('vaccination_card').default('No'),
+  // passport : varchar('passport').default('No'),
+  // imageWithOwner : varchar('image_with_owner'),
+  // ownerIdProof : varchar('owner_id_proof'),
+  // veterinaryHealthCertificate : varchar('veterinary_health_certificate'),
+  // sterilizationCard : varchar('sterilization_card'),
 }, (table) => [{
   pk: primaryKey({ columns: [table.id] }),
 }]);
@@ -264,11 +272,3 @@ export const heathcheckupRealations = relations(healthcheckup, ({ one }) => ({
     references: [pets.id],
   }),
 }));
-
-
-
-
-
-
-
-

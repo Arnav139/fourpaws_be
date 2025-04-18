@@ -24,7 +24,6 @@ router.post(
     { name: "passport", maxCount: 1 },
     { name: "imageWithOwner", maxCount: 1 },
      {name: "ownerIdProof", maxCount: 1},
-    { name: "veterinaryHealthCertificate", maxCount: 1 },
     { name: "sterilizationCard", maxCount: 1 },
   ]),
   validateRequest(PetValidators.validateCreateNewPet),

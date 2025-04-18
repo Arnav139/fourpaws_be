@@ -90,7 +90,6 @@ export const pets: any = pgTable(
       passport: string;
       imageWithOwner: string;
       ownerIdProof: string;
-      veterinaryHealthCertificate: string;
       sterilizationCard: string;
     }>(),
   },

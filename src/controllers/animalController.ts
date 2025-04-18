@@ -479,7 +479,6 @@ export default class animalController {
         "passport",
         "imageWithOwner",
         "ownerIdProof",
-        "veterinaryHealthCertificate",
         "sterilizationCard",
       ];
 

@@ -64,7 +64,7 @@ export const pets: any = pgTable(
   {
     id: serial("id").unique(),
     ownerId: integer("owner_id").references(() => users.id),
-    registrationNumber: varchar("registration_number", { length: 100 }).unique(),
+    registrationNumber: varchar("registration_number", { length: 100 }),
     governmentRegistered: boolean("government_registered")
       .default(false)
       .notNull(),

@@ -37,7 +37,7 @@ export default class petServices {
         .insert(pets)
         .values({
           ownerId ,
-          registrationNumber,
+          ...(registrationNumber ? { registrationNumber } : {}),
           governmentRegistered,
           name,
           species,

@@ -69,7 +69,9 @@ export default class Mailer {
     decodedTokenData: any,
     otp: string,
   ): Promise<any> => {
-   
+    if (!decodedTokenData["otp"] || !decodedTokenData["email"]) {
+      throw new Error("invalid token data provided");
+    }
     try {
       if (
         !verifyOtpHash(decodedTokenData["otp"], decodedTokenData["email"], otp)

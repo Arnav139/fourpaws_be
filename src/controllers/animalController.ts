@@ -497,7 +497,6 @@ export default class animalController {
           documents[field] = upload.secure_url;
         }
       }
-      console.log(registrationNumber, "registrationNumber");
 
       const newPet = await petServices.createNewPet(
         userid,

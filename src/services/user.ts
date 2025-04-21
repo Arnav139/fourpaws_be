@@ -14,11 +14,11 @@ export default class UserService {
      }
   };
 
-  static getUser = async (email: string,userId: string = "") => {
+  static getUser = async (email: string) => {
     const user = await postgreDb
       .select()
       .from(users)
-      .where(or(eq(users.email, email) , eq(users.id, userId)))
+      .where(eq(users.email, email))
       .limit(1)
       .execute();
 

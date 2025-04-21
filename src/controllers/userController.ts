@@ -4,13 +4,13 @@ import cloudinary from "../config/cloudinary";
 export default class userController {
   static getUser = async (req: any, res: any) => {
     try {
-      const user = req["user"]["userId"];
+      const user = req["user"]["email"];
       if (!user) {
         return res
           .status(404)
           .json({ success: false, message: "User not found" });
       }
-      const userExists = await UserService.getUser("", user);
+      const userExists = await UserService.getUser(user);
       return res.status(200).json({ success: true, userExists });
     } catch (error) {
       console.error("Error in getUser:", error);
@@ -22,13 +22,14 @@ export default class userController {
 
   static updateUser = async (req: any, res: any) => {
     try {
+      const email = req.user?.email;
       const userId = req.user?.userId;
-      if (!userId) {
+      if (!email) {
         return res
           .status(401)
           .json({ success: false, message: "User not authenticated" });
       }
-      const userExists = await UserService.getUser("", userId);
+      const userExists = await UserService.getUser(email);
       if (!userExists) {
         return res
           .status(404)

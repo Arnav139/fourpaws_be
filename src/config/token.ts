@@ -4,13 +4,14 @@ import jwt from "jsonwebtoken";
 import { envConfigs } from './envconfig';
 import { TokenTypes } from '../enums';
 
-export const generateAuthTokens = (userId:any ) => {
+export const generateAuthTokens = (userId:any, email:string ) => {
   const accessTokenExpires = moment().add(
     envConfigs.accessExpirationMinutes,
     "minutes"
   );
   const accessToken = jwt.sign(JSON.stringify({
     userId: userId,
+    email : email,
     type: TokenTypes.ACCESS, // Include the token type
     exp: accessTokenExpires.unix() // Set expiration time in UNIX timestamp format
   }), envConfigs.jwtsecret);

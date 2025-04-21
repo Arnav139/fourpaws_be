@@ -9,19 +9,19 @@ export default class authController {
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
       const { otp } = req.body;
-      let userExists = await Mailer.verifyOtp(req["user"] as any, otp);
+      let userExists = await Mailer.verifyOtp(req["user"] as any, otp as string);
       if (!userExists) {
         userExists = await UserService.insertUser(
           req["user"]["email"] as string,
         );
       }
-      const accessToken = generateAuthTokens(userExists.id);
+      const accessToken = generateAuthTokens(userExists.id, userExists.email);
       const user = { ...userExists, accessToken };
       return res
         .status(200)
         .send({ success: true, message: "user logged  in", user });
     } catch (error) {
-
+      console.error("Error in verifyOtp:", error);
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
   };

@@ -84,10 +84,10 @@ export default class PetValidators {
           (val) => {
             try {
               const parsed = JSON.parse(val);
-              console.log("Parsed personalityTraits", parsed);
+             
               return Array.isArray(parsed);
             } catch {
-                console.log("Error parsing personalityTraits", val);
+
               return false;
             }
           },

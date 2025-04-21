@@ -14,10 +14,10 @@ const TokenHeaderSchema = z.object({
 const validateRequestHeader = (schema: AnyZodObject) => async (req: Request, res: Response, next: NextFunction) => {
   try {
       const tokenHeader = req.headers['authorization']; 
-      console.log("Token Header",tokenHeader);
+    
       await schema.parseAsync({ header:{ authorization: tokenHeader}});
       req.header['authorization'] = tokenHeader;
-      console.log("Header Authorization",req.header['authorization']);
+      
       next();
   } catch (error) {
       return res.status(400).send({ status: false, message: "Invalid Headers Authorization Token Missing." });
@@ -25,7 +25,7 @@ const validateRequestHeader = (schema: AnyZodObject) => async (req: Request, res
 };
 
 const verifyCallback = (req:Request, resolve:any, reject:any,res:Response) => async (err:any, user:any, info:any) => {
-  console.log("Userrrrr...............",user);
+ 
   if (err || info || !user) {
     return reject(new Error('UNAUTHOURIZED USER'));
   }

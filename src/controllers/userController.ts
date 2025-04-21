@@ -8,10 +8,15 @@ export default class userController {
       if (!user) {
         return res
           .status(404)
-          .json({ success: false, message: "User not found" });
+          .json({ success: false, error: "User not found" });
       }
       const userExists = await UserService.getUser(user);
-      return res.status(200).json({ success: true, userExists });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          user: { ...userExists, profileImage: userExists.profileImageUrl },
+        });
     } catch (error) {
       console.error("Error in getUser:", error);
       return res
@@ -35,7 +40,7 @@ export default class userController {
           .status(404)
           .json({ success: false, message: "User not found" });
       }
-      const { userName, bio } = req.body;
+      const { name, bio } = req.body;
       let profileImageUrl: string | undefined;
       if (req.files?.profileImage?.length) {
         const profileImage = req.files.profileImage[0];
@@ -46,22 +51,25 @@ export default class userController {
           mainImageDataUri,
           {
             folder: "pets",
-          }
+          },
         );
         profileImageUrl = mainImageUpload.secure_url;
       }
-      if (!userName && !bio && !profileImageUrl) {
+      if (!name && !bio && !profileImageUrl) {
         return res
           .status(400)
           .json({ success: false, message: "No fields provided to update" });
       }
       const updatedUser = await UserService.updateUser(
         userId,
-        userName,
+        name,
         bio,
-        profileImageUrl
+        profileImageUrl,
       );
-      return res.status(200).json({ success: true, updatedUser });
+      return res.status(200).json({
+        success: true,
+        user: { ...updatedUser, profileImage: updatedUser.profileImageUrl },
+      });
     } catch (error) {
       console.error("Error in updateUser:", error);
       return res

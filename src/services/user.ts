@@ -1,6 +1,6 @@
 import postgreDb from "../config/dbConfig";
 import { users } from "../models/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 export default class UserService {
 
@@ -14,11 +14,11 @@ export default class UserService {
      }
   };
 
-  static getUser = async (email: string) => {
+  static getUser = async (email: string,userId: string = "") => {
     const user = await postgreDb
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(or(eq(users.email, email) , eq(users.id, userId)))
       .limit(1)
       .execute();
 
@@ -47,4 +47,28 @@ export default class UserService {
       .returning();
     return updatedUser;
   };
+
+  static updateUser = async (user:string ,name?: string, bio?: string, profileImageUrl?: string) => {
+    try {
+      const updateData: any = {
+        updatedAt: new Date()
+    };
+
+    if (name !== undefined) updateData.name = name;
+    if (bio !== undefined) updateData.bio = bio;
+    if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
+
+    const updatedUser = await postgreDb
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, user))
+        .returning();
+
+    return updatedUser[0];
+    }
+     catch (error : any) {
+      console.error("Error updating user:", error);
+      throw new Error("Failed to update user");  
+    }
+  }
 }

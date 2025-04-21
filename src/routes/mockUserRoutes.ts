@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticateUser } from "../middlewares";
 import {userController} from "../controllers/index";
+import upload from "../middlewares/multer";
 
 const router = express.Router();
 
@@ -26,5 +27,8 @@ router.get("/mockUserData", (req, res) => {
   res.json(userData);
 });
 
+router.post("/updateUserData", authenticateUser, upload.fields([
+  {name: "profileImage", maxCount: 1},
+]), userController.updateUser)
 
 export default router;

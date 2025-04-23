@@ -29,7 +29,7 @@ export default class userController {
     try {
       const email = req.user?.email;
       const userId = req.user?.userId;
-      console.log("req body:", req.body);
+      
       if (!email) {
         return res
           .status(401)

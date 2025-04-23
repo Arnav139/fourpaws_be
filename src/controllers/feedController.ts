@@ -912,7 +912,7 @@ export default class feedController {
           .json({ success: false, message: "Unauthorized user" });
       }
       const allPosts = await FeedService.getAllPosts();
-      console.log("All posts:", allPosts);
+    
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
 

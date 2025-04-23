@@ -1,8 +1,6 @@
 import express, { Request, Response } from "express";
 import cloudinary from "../config/cloudinary";
-import {FeedService, UserService} from "../services/index";
-
-
+import { FeedService, UserService } from "../services/index";
 
 interface Post {
   id: string;
@@ -72,10 +70,10 @@ interface Comment {
 }
 
 interface CommentsResponse {
-    comments: Comment[];
-    hasMore: boolean;
-    nextCursor?: string;
-  }
+  comments: Comment[];
+  hasMore: boolean;
+  nextCursor?: string;
+}
 
 const mockPosts = [
   {
@@ -862,59 +860,68 @@ const mockComments: Comment[] = [
   },
 ];
 
-export default class feedController{
-
-  static getCommentsByPostId = async (req: Request, res : any) => {
-      try {
-        const { postId } = req.params;
-    
-        const cursor = req.query.cursor as string | undefined;
-        const limit = parseInt(req.query.limit as string) || 10; 
-    
-        const postComments = mockComments.filter((c) => c.postId === postId);
-  
-        if (postComments.length === 0) {
-          return res.status(200).json({
-            comments: [],
-            hasMore: false,
-            nextCursor: undefined,
-          });
-        }
-  
-        postComments.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-  
-        const startIndex = cursor ? parseInt(cursor) : 0;
-        const endIndex = startIndex + limit;
-        const paginatedComments = postComments.slice(startIndex, endIndex);
-        const hasMore = endIndex < postComments.length;
-        const nextCursor = hasMore ? endIndex.toString() : undefined;
-    
-        // Send the response
-        const response: CommentsResponse = {
-          comments: paginatedComments,
-          hasMore,
-          nextCursor,
-        };
-        res.status(200).json(response);
-      } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    };
-  
-  static getPosts = async (req: Request, res: Response) => {
+export default class feedController {
+  static getCommentsByPostId = async (req: Request, res: any) => {
     try {
+      const { postId } = req.params;
+
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
-  
+
+      const postComments = mockComments.filter((c) => c.postId === postId);
+
+      if (postComments.length === 0) {
+        return res.status(200).json({
+          comments: [],
+          hasMore: false,
+          nextCursor: undefined,
+        });
+      }
+
+      postComments.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      const startIndex = cursor ? parseInt(cursor) : 0;
+      const endIndex = startIndex + limit;
+      const paginatedComments = postComments.slice(startIndex, endIndex);
+      const hasMore = endIndex < postComments.length;
+      const nextCursor = hasMore ? endIndex.toString() : undefined;
+
+      // Send the response
+      const response: CommentsResponse = {
+        comments: paginatedComments,
+        hasMore,
+        nextCursor,
+      };
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  static getPosts = async (req: Request, res: any) => {
+    try {
+       const email = req["user"]["userId"] as any;
+       const userId = req["user"]["userId"] as any;
+      if (!email || !userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized user" });
+      }
+      const allPosts = await FeedService.getAllPosts();
+      console.log("All posts:", allPosts);
+      const cursor = req.query.cursor as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 10;
+
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + limit;
       const paginatedPosts = mockPosts.slice(startIndex, endIndex);
       const hasMore = endIndex < mockPosts.length;
       const nextCursor = hasMore ? endIndex.toString() : undefined;
-  
+
       const response: PostsResponse = {
         posts: paginatedPosts,
         hasMore,
@@ -926,64 +933,78 @@ export default class feedController{
       res.status(500).json({ error: "Internal server error" });
     }
   };
-  
+
   static getStories = async (req: Request, res: Response) => {
     res.status(200).json(mockStories);
   };
 
   static createPost = async (req: Request, res: any) => {
     try {
-      const  email  = req["user"]["email"] as any;
+      const email = req["user"]["email"] as any;
       const authorId = req["user"]["userId"] as any;
 
-      console.log("User ID:", authorId);
-      console.log("Email:", email);
-  
       if (!email || !authorId) {
-        return res.status(401).json({ success: false, message: "Unauthorized user" });
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized user" });
       }
-  
-      const user = await UserService.getUser(email);
-      console.log("User:", user);
-      if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
-      }
-  
-    
-      const { content, type } = req.body;
-  
-      if (!content || !type) {
-        return res.status(400).json({ success: false, message: "Content and type are required" });
-      }
-      console.log(req.files, "req.files");
-  
-      const postImage = (req.files as any).postImage?.[0];
 
-        const mainImageDataUri = `data:${postImage.mimetype};base64,${postImage.buffer.toString("base64")}`;
-        const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
+      const user = await UserService.getUser(email);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      const { content, type } = req.body;
+
+      if (!content || !type) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Content and type are required" });
+      }
+      let imageUrl = null;
+      const postImage = (req.files as any).postImage?.[0];
+     if(postImage){
+      const mainImageDataUri = `data:${
+        postImage.mimetype
+      };base64,${postImage.buffer.toString("base64")}`;
+      const mainImageUpload = await cloudinary.uploader.upload(
+        mainImageDataUri,
+        {
           folder: "feed",
-        });
-        const newPost = await FeedService.createPost({
-          authorId,
-          content,
-          type,
-          imageUrl: mainImageUpload.secure_url, // pass as array
-        });
-    
-        if (!newPost) {
-          return res.status(500).json({ success: false, message: "Failed to create post" });
         }
-    
-        return res.status(201).json({
-          success: true,
-          message: "Post created successfully",
-          post: {...newPost, authorName: user.name, authorAvatar: user.profileImageUrl,isLiked : false,commentsCount : 0, likesCount :0}, // Assuming you have the user's name and avatar URL
-        }); 
-    }catch (error : any) {
+      );
+      imageUrl = mainImageUpload.secure_url;
+    }
+      const newPost = await FeedService.createPost({
+        authorId,
+        content,
+        type,
+        imageUrl, // pass as array
+      });
+
+      if (!newPost) {
+        return res
+          .status(500)
+          .json({ success: false, message: "Failed to create post" });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "Post created successfully",
+        post: {
+          ...newPost,
+          authorName: user.name,
+          authorAvatar: user.profileImageUrl,
+          isLiked: false,
+          commentsCount: 0,
+          likesCount: 0,
+        }, // Assuming you have the user's name and avatar URL
+      });
+    } catch (error: any) {
       console.error("Create Post Error:", error);
       return res.status(500).json({ success: false, message: "Server error" });
     }
-  
   };
-
 }

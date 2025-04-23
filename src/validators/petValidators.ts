@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from "express";
 // Constants for validation (adjust as needed)
 const Constants = {
   perPageMaxDataLength: 100, // Example max limit for pagination
-  maxFileSize: 5 * 1024 * 1024, // 5MB
+  maxFileSize: 2 * 1024 * 1024, // 5MB
 };
 
 // Define interface for req.files to ensure type safety
@@ -55,14 +55,14 @@ export default class PetValidators {
   // createNewPet validator
   static validateCreateNewPet = z.object({
     body: z.object({
-      registrationNumber: z.string({ required_error: 'registrationNumber is required' }),
+      registrationNumber: z.string().optional(),
       governmentRegistered: z
-        .string({required_error: 'governmentRegistered is required'}),
+        .string({required_error: 'governmentRegistered is required'}).min(1, "governmentRegistered must be a non-empty string"),
       name: z.string({ required_error: "name is required" }).min(1, "Name must be a non-empty string"),
       species: z.string({ required_error: "species is required" }).min(1, "Species must be a non-empty string"),
       breed: z.string({ required_error: "breed is required" }).min(1, "Breed must be a non-empty string"),
       gender: z.string().optional(),
-      sterilized: z.string({required_error: 'sterilized is required'}),
+      sterilized: z.string({required_error: 'sterilized is required'}).min(1, "sterilized must be a non-empty string"), 
       bio: z.string().nullable().optional(),
       dateOfBirth: z.string().optional(), // Could add regex for date format
       metaData: z
@@ -121,15 +121,15 @@ export default class PetValidators {
           { message: "medications must be a valid JSON array" }
         )
         .optional(),
-        additionalImages:z.object({}).optional(),
-        documents:z.object({
-          "veterinaryHealthCard" : z.string(),
-          "vaccinationCard" : z.string(),
-          "passport" : z.string(),
-          "imageWithOwner" : z.string(),
-          "ownerIdProof" : z.string(),
-          "sterilizationCard" : z.string()
-        }).optional()
+        // additionalImages:z.object({}).optional(),
+        // documents:z.object({
+        //   "veterinaryHealthCard" : z.string(),
+        //   "vaccinationCard" : z.string(),
+        //   "passport" : z.string(),
+        //   "imageWithOwner" : z.string(),
+        //   "ownerIdProof" : z.string(),
+        //   "sterilizationCard" : z.string()
+        // }).optional()
     }),
     params: z.object({}).strict(),
     query: z.object({}).strict(),

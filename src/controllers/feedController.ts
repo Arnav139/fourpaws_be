@@ -880,7 +880,7 @@ export default class feedController {
 
       postComments.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
       const startIndex = cursor ? parseInt(cursor) : 0;
@@ -904,8 +904,8 @@ export default class feedController {
 
   static getPosts = async (req: Request, res: any) => {
     try {
-       const email = req["user"]["userId"] as any;
-       const userId = req["user"]["userId"] as any;
+      const email = req["user"]["userId"] as any;
+      const userId = req["user"]["userId"] as any;
       if (!email || !userId) {
         return res
           .status(401)
@@ -919,7 +919,7 @@ export default class feedController {
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + limit;
       const paginatedPosts = allPosts.slice(startIndex, endIndex);
-      const hasMore = endIndex < mockPosts.length;
+      const hasMore = endIndex < allPosts.length;
       const nextCursor = hasMore ? endIndex.toString() : undefined;
 
       const response = {
@@ -965,18 +965,21 @@ export default class feedController {
       }
       let imageUrl = null;
       const postImage = (req.files as any).postImage?.[0];
-     if(postImage){
-      const mainImageDataUri = `data:${
-        postImage.mimetype
-      };base64,${postImage.buffer.toString("base64")}`;
-      const mainImageUpload = await cloudinary.uploader.upload(
-        mainImageDataUri,
-        {
-          folder: "feed",
-        }
-      );
-      imageUrl = mainImageUpload.secure_url;
-    }
+
+      console.log("\n\n\n\n", "postImage", postImage, "\n\n\n");
+
+      if (postImage) {
+        const mainImageDataUri = `data:${
+          postImage.mimetype
+        };base64,${postImage.buffer.toString("base64")}`;
+        const mainImageUpload = await cloudinary.uploader.upload(
+          mainImageDataUri,
+          {
+            folder: "feed",
+          },
+        );
+        imageUrl = mainImageUpload.secure_url;
+      }
       const newPost = await FeedService.createPost({
         authorId,
         content,

@@ -38,4 +38,14 @@ export default class FeedService {
       throw new Error("Failed to create post");
     }
   };
+
+  static getAllPosts = async()=>{
+    try {
+      const allPosts = await postgreDb.query.posts.findMany()
+      return allPosts;
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      throw new Error("Failed to fetch posts");
+    }
+  }
 }

@@ -918,11 +918,11 @@ export default class feedController {
 
       const startIndex = cursor ? parseInt(cursor) : 0;
       const endIndex = startIndex + limit;
-      const paginatedPosts = mockPosts.slice(startIndex, endIndex);
+      const paginatedPosts = allPosts.slice(startIndex, endIndex);
       const hasMore = endIndex < mockPosts.length;
       const nextCursor = hasMore ? endIndex.toString() : undefined;
 
-      const response: PostsResponse = {
+      const response = {
         posts: paginatedPosts,
         hasMore,
         nextCursor,

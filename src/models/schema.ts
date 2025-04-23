@@ -157,13 +157,13 @@ export const posts = pgTable(
   {
     id: serial("id").primaryKey(),
     authorId: integer("author_id").references(() => users.id),
-    // petId: integer('pet_id').references(() => pets.id),
     content: text("content").notNull(),
     image: jsonb("Image_url").$type<string[]>(),
     type: varchar("type").default("standard"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     {

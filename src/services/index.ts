@@ -1,4 +1,5 @@
 import UserService from "./user";
-import petServices from "./pets";
+import PetServices from "./pets";
+import FeedService from "./feed";
 
-export  {UserService, petServices}; ;
+export  {UserService, PetServices,FeedService}; ;

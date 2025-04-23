@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Request, Response, NextFunction } from "express";
-import { param } from "drizzle-orm";
+
 
 export default class userValidators {
   static validateGetUser = z.object({

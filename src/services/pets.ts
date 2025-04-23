@@ -12,7 +12,7 @@ export interface petDocuments{
   sterilizationCard: string;
 } 
 
-export default class petServices {
+export default class PetServices {
   static createNewPet = async (
     ownerId : string,
     registrationNumber: string,

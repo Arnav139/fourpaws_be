@@ -235,7 +235,7 @@ export default class FeedService {
     authorId: number,
     commentId: number,
   ): Promise<boolean> {
-    console.log("Toggling comment like:", { authorId, commentId });
+  
     try {
       const existingLike = await postgreDb
         .select()
@@ -276,7 +276,6 @@ export default class FeedService {
     postId: number,
     content: string,
   ): Promise<any> {
-    console.log("Adding comment:", { authorId, postId, content });
 
     try {
       // Insert the new comment
@@ -340,12 +339,7 @@ export default class FeedService {
     authorId: number,
   ): Promise<any> {
     const userId = authorId; // Use the provided authorId as userId
-    console.log(
-      "Fetching comments for postId:",
-      postId,
-      "with userId:",
-      userId,
-    );
+
     try {
       const commentsResult = await postgreDb
         .select({

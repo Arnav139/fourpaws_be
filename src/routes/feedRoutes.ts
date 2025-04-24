@@ -13,7 +13,7 @@ router.get("/posts/:postId", authenticateUser, FeedController.getPostById);
 router.get("/posts/:postId/comments",authenticateUser, FeedController.getCommentsByPostId);
 
 
-router.post("/posts/:postId/comment", authenticateUser, FeedController.addCommentByPostId);
+router.post("/posts/:postId/comments", authenticateUser, FeedController.addCommentByPostId);
 router.post("/posts/:postId/like", authenticateUser, FeedController.togglePostLike);
 router.post("/comments/:commentId/like", authenticateUser, FeedController.toggleCommentLike);
 router.post(

@@ -869,22 +869,13 @@ export default class FeedController {
       const authorId = req["user"]["userId"] as any;
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
-      console.log(
-        "postId",
-        postId,
-        "authorId",
-        authorId,
-        "cursor",
-        cursor,
-        "limit",
-        limit,
-      );
+  
 
       const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
         parseInt(postId),
         authorId,
       );
-      console.log("allCommentsOfPost", allCommentsOfPost);
+    
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
 
@@ -1072,7 +1063,6 @@ export default class FeedController {
     try {
       const userId = req["user"]?.userId;
       const { commentId } = req.params;
-      console.log("userId", userId, "commentId", commentId);
 
       if (!userId || !commentId) {
         return res.status(400).json({
@@ -1131,7 +1121,7 @@ export default class FeedController {
       const authorId = req["user"]["userId"] as any;
       const { postId } = req.params;
       const { content } = req.body;
-      console.log("req.body", req.body, "req.params", req.params, authorId);
+
 
       if (!authorId || !postId || !content) {
         return res.status(400).json({

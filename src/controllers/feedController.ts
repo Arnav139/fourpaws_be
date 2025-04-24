@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import cloudinary from "../config/cloudinary";
 import { FeedService, UserService } from "../services/index";
+import { number } from "zod";
+import { numeric } from "drizzle-orm/pg-core";
 
 interface Post {
   id: string;
@@ -864,11 +866,15 @@ export default class FeedController {
   static getCommentsByPostId = async (req: Request, res: any) => {
     try {
       const { postId } = req.params;
-
+      const authorId = req["user"]["userId"] as any;
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
+    console.log("postId", postId, "authorId", authorId, "cursor", cursor, "limit", limit);
 
-      const postComments = mockComments.filter((c) => c.postId === postId);
+      const allCommentsOfPost = await FeedService.getAllCommentsByPostId(parseInt(postId), authorId );
+      console.log("allCommentsOfPost", allCommentsOfPost);
+
+      const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
 
       if (postComments.length === 0) {
         return res.status(200).json({
@@ -1014,10 +1020,11 @@ export default class FeedController {
     }
   };
 
-  static toggleLike = async (req: Request, res: any) => {
+  static togglePostLike = async (req: Request, res: any) => {
     try {
       const userId = req["user"]?.userId;
       const { postId } = req.params;
+
 
       if (!userId || !postId) {
         return res.status(400).json({
@@ -1026,14 +1033,14 @@ export default class FeedController {
         });
       }
 
-      const post = await FeedService.getPostById(Number(postId));
+      const post = await FeedService.getPostById(Number(postId), userId);
       if (!post) {
         return res
           .status(404)
           .json({ success: false, error: "Post not found" });
       }
 
-      const isLiked = await FeedService.toggleLike(
+      const isLiked = await FeedService.togglePostLike(
         Number(userId),
         Number(postId),
       );
@@ -1050,4 +1057,88 @@ export default class FeedController {
       res.status(500).json({ success: false, error: "Internal server error" });
     }
   };
+
+  static toggleCommentLike = async (req: Request, res: any) => {
+    try {
+      const userId = req["user"]?.userId;
+      const { commentId } = req.params;
+      console.log("userId", userId, "commentId", commentId);
+
+      if (!userId || !commentId) {
+        return res.status(400).json({
+          success: false,
+          error: "User ID and Post ID are required",
+        });
+      }
+
+      const post = await FeedService.getCommentById(Number(commentId),userId);
+      if (!post) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Post not found" });
+      }
+
+      const isLiked = await FeedService.toggleCommentLike(
+        Number(userId),
+        Number(commentId),
+      );
+
+      res.status(200).json({
+        success: true,
+        message: isLiked
+          ? "comment liked successfully"
+          : "comment unliked successfully",
+        isLiked,
+      });
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
+    }
+  };
+
+  static getPostById = async (req: Request, res: any) => {
+    try {
+      const authorId = req["user"]?.userId;
+      const { postId } = req.params;
+      const post = await FeedService.getPostById(Number(postId), Number(authorId));
+      if (!post) {
+        return res.status(404).json({ success: false, error: "Post not found" });
+      }
+      res.status(200).json({ success: true, post });
+    } catch (error) {
+      console.error("Error fetching post:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
+    }
+  };
+
+  static addCommentByPostId = async (req: Request, res: any) => {
+      try {
+         const authorId = req["user"]["userId"] as any;
+         const { postId } = req.params;
+          const { content } = req.body;
+          console.log("req.body", req.body, "req.params", req.params, authorId);
+  
+          if(!authorId || !postId || !content) {
+            return res.status(400).json({
+              success: false,
+              error: "Author ID, Post ID, and content are required",
+            });
+          }
+          const newComment = await FeedService.addCommentByPostId(authorId, parseInt(postId), content);
+          if(!newComment) {
+            return res.status(500).json({
+              success: false,
+              error: "Failed to add comment",
+            });
+          }
+          res.status(201).json({
+            success: true,
+            message: "Comment added successfully",
+            comment: newComment,
+          });
+      } catch (error) {
+        console.error("Error adding comment:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+      }
+  } 
 }

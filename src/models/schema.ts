@@ -206,6 +206,7 @@ export const comments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
   },
   (table) => [
     {
@@ -221,6 +222,7 @@ export const postLikes = pgTable(
     id: serial("id").primaryKey(),
     postId: integer("post_id").references(() => posts.id),
     userId: integer("user_id").references(() => users.id),
+    commentId: integer("comment_id").references(() => comments.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

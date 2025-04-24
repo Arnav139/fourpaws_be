@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
-import user from "./mockUserRoutes";
-import pets from "./mockAnimalRoutes";
+import user from "./userRoutes";
+import pets from "./petRoutes";
 import marketPlaceData from "./marketPlaceroutes";
-import feed from "./mockFeedRoute";
-import auth from "./authRoute"
+import feed from "./feedRoutes";
+import auth from "./authRoutes"
 
 const router = express.Router();
 

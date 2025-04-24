@@ -1,16 +1,22 @@
 import express from "express";
 // import { getPosts, getStories,getCommentsByPostId} from "../controllers/feedController";
-import { feedController } from "../controllers/index";
+import { FeedController } from "../controllers/index";
 import { authenticateUser } from "../middlewares";
 import upload from "../middlewares/multer";
-import  {checkFileSizeByType}  from "../middlewares/checkFileSizeByType";
+import { checkFileSizeByType } from "../middlewares/checkFileSizeByType";
 
 const router = express.Router();
 
-router.get("/posts",authenticateUser, feedController.getPosts);
-router.get("/stories", feedController.getStories);
-router.get("/posts/:postId/comments", feedController.getCommentsByPostId);
-router.post("/posts", authenticateUser,upload.fields([
-    { name: "postImage",maxCount : 1 },checkFileSizeByType,
-]),feedController.createPost);
+router.get("/posts", authenticateUser, FeedController.getPosts);
+router.get("/stories", FeedController.getStories);
+router.get("/posts/:postId/comments", FeedController.getCommentsByPostId);
+router.post("/posts/:postId/like", authenticateUser, FeedController.toggleLike);
+
+router.post(
+  "/posts",
+  authenticateUser,
+  upload.fields([{ name: "postImage", maxCount: 1 }, checkFileSizeByType]),
+  FeedController.createPost,
+);
+
 export default router;

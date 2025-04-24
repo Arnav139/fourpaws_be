@@ -860,7 +860,7 @@ const mockComments: Comment[] = [
   },
 ];
 
-export default class feedController {
+export default class FeedController {
   static getCommentsByPostId = async (req: Request, res: any) => {
     try {
       const { postId } = req.params;
@@ -906,28 +906,31 @@ export default class feedController {
     try {
       const email = req["user"]["userId"] as any;
       const userId = req["user"]["userId"] as any;
-      if (!email || !userId) {
+      if (!userId) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized user" });
       }
-      const allPosts = await FeedService.getAllPosts();
-    
-      const cursor = req.query.cursor as string | undefined;
+
+      const cursor = parseInt(req.query.cursor as string) || 0;
       const limit = parseInt(req.query.limit as string) || 10;
 
-      const startIndex = cursor ? parseInt(cursor) : 0;
-      const endIndex = startIndex + limit;
-      const paginatedPosts = allPosts.slice(startIndex, endIndex);
-      const hasMore = endIndex < allPosts.length;
-      const nextCursor = hasMore ? endIndex.toString() : undefined;
+      const { posts, totalPosts } = await FeedService.getAllPosts(
+        userId,
+        cursor,
+        limit,
+      );
 
-      const response = {
-        posts: paginatedPosts,
+      const hasMore = cursor + limit < totalPosts;
+      const nextCursor = hasMore ? cursor + limit : undefined;
+
+      // Response
+      res.status(200).json({
+        success: true,
+        posts,
         hasMore,
         nextCursor,
-      };
-      res.status(200).json(response);
+      });
     } catch (error) {
       console.error("Error fetching posts:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -1008,6 +1011,43 @@ export default class feedController {
     } catch (error: any) {
       console.error("Create Post Error:", error);
       return res.status(500).json({ success: false, message: "Server error" });
+    }
+  };
+
+  static toggleLike = async (req: Request, res: any) => {
+    try {
+      const userId = req["user"]?.userId;
+      const { postId } = req.params;
+
+      if (!userId || !postId) {
+        return res.status(400).json({
+          success: false,
+          error: "User ID and Post ID are required",
+        });
+      }
+
+      const post = await FeedService.getPostById(Number(postId));
+      if (!post) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Post not found" });
+      }
+
+      const isLiked = await FeedService.toggleLike(
+        Number(userId),
+        Number(postId),
+      );
+
+      res.status(200).json({
+        success: true,
+        message: isLiked
+          ? "Post liked successfully"
+          : "Post unliked successfully",
+        isLiked,
+      });
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
     }
   };
 }

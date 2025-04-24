@@ -869,9 +869,21 @@ export default class FeedController {
       const authorId = req["user"]["userId"] as any;
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
-    console.log("postId", postId, "authorId", authorId, "cursor", cursor, "limit", limit);
+      console.log(
+        "postId",
+        postId,
+        "authorId",
+        authorId,
+        "cursor",
+        cursor,
+        "limit",
+        limit,
+      );
 
-      const allCommentsOfPost = await FeedService.getAllCommentsByPostId(parseInt(postId), authorId );
+      const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
+        parseInt(postId),
+        authorId,
+      );
       console.log("allCommentsOfPost", allCommentsOfPost);
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
@@ -967,15 +979,14 @@ export default class FeedController {
 
       const { content, type } = req.body;
 
-      if (!content || !type) {
+      if (!type) {
         return res
           .status(400)
-          .json({ success: false, message: "Content and type are required" });
+          .json({ success: false, message: "Type are required" });
       }
+
       let imageUrl = null;
       const postImage = (req.files as any).postImage?.[0];
-
-      console.log("\n\n\n\n", "postImage", postImage, "\n\n\n");
 
       if (postImage) {
         const mainImageDataUri = `data:${
@@ -1025,7 +1036,6 @@ export default class FeedController {
       const userId = req["user"]?.userId;
       const { postId } = req.params;
 
-
       if (!userId || !postId) {
         return res.status(400).json({
           success: false,
@@ -1071,7 +1081,7 @@ export default class FeedController {
         });
       }
 
-      const post = await FeedService.getCommentById(Number(commentId),userId);
+      const post = await FeedService.getCommentById(Number(commentId), userId);
       if (!post) {
         return res
           .status(404)
@@ -1100,9 +1110,14 @@ export default class FeedController {
     try {
       const authorId = req["user"]?.userId;
       const { postId } = req.params;
-      const post = await FeedService.getPostById(Number(postId), Number(authorId));
+      const post = await FeedService.getPostById(
+        Number(postId),
+        Number(authorId),
+      );
       if (!post) {
-        return res.status(404).json({ success: false, error: "Post not found" });
+        return res
+          .status(404)
+          .json({ success: false, error: "Post not found" });
       }
       res.status(200).json({ success: true, post });
     } catch (error) {
@@ -1112,33 +1127,37 @@ export default class FeedController {
   };
 
   static addCommentByPostId = async (req: Request, res: any) => {
-      try {
-         const authorId = req["user"]["userId"] as any;
-         const { postId } = req.params;
-          const { content } = req.body;
-          console.log("req.body", req.body, "req.params", req.params, authorId);
-  
-          if(!authorId || !postId || !content) {
-            return res.status(400).json({
-              success: false,
-              error: "Author ID, Post ID, and content are required",
-            });
-          }
-          const newComment = await FeedService.addCommentByPostId(authorId, parseInt(postId), content);
-          if(!newComment) {
-            return res.status(500).json({
-              success: false,
-              error: "Failed to add comment",
-            });
-          }
-          res.status(201).json({
-            success: true,
-            message: "Comment added successfully",
-            comment: newComment,
-          });
-      } catch (error) {
-        console.error("Error adding comment:", error);
-        res.status(500).json({ success: false, error: "Internal server error" });
+    try {
+      const authorId = req["user"]["userId"] as any;
+      const { postId } = req.params;
+      const { content } = req.body;
+      console.log("req.body", req.body, "req.params", req.params, authorId);
+
+      if (!authorId || !postId || !content) {
+        return res.status(400).json({
+          success: false,
+          error: "Author ID, Post ID, and content are required",
+        });
       }
-  } 
+      const newComment = await FeedService.addCommentByPostId(
+        authorId,
+        parseInt(postId),
+        content,
+      );
+      if (!newComment) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to add comment",
+        });
+      }
+      res.status(201).json({
+        success: true,
+        message: "Comment added successfully",
+        comment: newComment,
+      });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
+    }
+  };
 }

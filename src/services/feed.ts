@@ -45,7 +45,7 @@ export default class FeedService {
   static getAllPosts = async (
     userId: number,
     cursor: number,
-    limit: number
+    limit: number,
   ): Promise<{ posts: any[]; totalPosts: number }> => {
     try {
       const totalPostsResult = await postgreDb
@@ -65,7 +65,7 @@ export default class FeedService {
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           commentsCount: sql`COUNT(DISTINCT ${comments.id})`.as(
-            "commentsCount"
+            "commentsCount",
           ),
           likesCount: sql`COUNT(DISTINCT ${postLikes.id})`.as("likesCount"),
           isLiked: sql`
@@ -101,7 +101,7 @@ export default class FeedService {
           posts.image,
           posts.type,
           posts.createdAt,
-          posts.updatedAt
+          posts.updatedAt,
         )
         .orderBy(desc(posts.createdAt))
         .offset(cursor)
@@ -117,7 +117,7 @@ export default class FeedService {
     }
   };
 
-  static async getPostById(postId: number, authorId : number): Promise<any> {
+  static async getPostById(postId: number, authorId: number): Promise<any> {
     try {
       const post = await postgreDb
         .select({
@@ -130,7 +130,7 @@ export default class FeedService {
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           commentsCount: sql`COUNT(DISTINCT ${comments.id})`.as(
-            "commentsCount"
+            "commentsCount",
           ),
           likesCount: sql`COUNT(DISTINCT ${postLikes.id})`.as("likesCount"),
           isLiked: sql`
@@ -156,6 +156,18 @@ export default class FeedService {
         })
         .from(posts)
         .leftJoin(users, eq(posts.authorId, users.id))
+        .leftJoin(comments, eq(comments.authorId, comments.id))
+        .leftJoin(postLikes, eq(postLikes.postId, posts.id))
+        .groupBy(
+          posts.id,
+          users.name,
+          users.profileImageUrl,
+          posts.content,
+          posts.image,
+          posts.type,
+          posts.createdAt,
+          posts.updatedAt,
+        )
         .where(eq(posts.id, postId))
         .limit(1);
 
@@ -179,9 +191,9 @@ export default class FeedService {
         .where(and(eq(comments.authorId, userId), eq(comments.id, commentId)))
         .limit(1);
 
-        if (comment.length === 0) {
-          return null;
-        }
+      if (comment.length === 0) {
+        return null;
+      }
       return comment[0];
     } catch (error) {
       console.error("Error fetching comment by ID:", error);
@@ -204,7 +216,7 @@ export default class FeedService {
         await postgreDb
           .delete(postLikes)
           .where(
-            and(eq(postLikes.userId, userId), eq(postLikes.postId, postId))
+            and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)),
           );
         return false;
       } else {
@@ -228,20 +240,29 @@ export default class FeedService {
       const existingLike = await postgreDb
         .select()
         .from(postLikes)
-        .where(and(eq(postLikes.userId, authorId), eq(postLikes.commentId, commentId)))
+        .where(
+          and(
+            eq(postLikes.userId, authorId),
+            eq(postLikes.commentId, commentId),
+          ),
+        )
         .limit(1);
 
       if (existingLike.length > 0) {
         await postgreDb
           .delete(postLikes)
           .where(
-            and(eq(postLikes.userId, authorId), eq(postLikes.commentId, commentId))
+            and(
+              eq(postLikes.userId, authorId),
+              eq(postLikes.commentId, commentId),
+            ),
           );
         return false;
       } else {
         await postgreDb.insert(postLikes).values({
           userId: authorId,
-          commentId,});
+          commentId,
+        });
         return true;
       }
     } catch (error) {
@@ -253,7 +274,7 @@ export default class FeedService {
   static async addCommentByPostId(
     authorId: number,
     postId: number,
-    content: string
+    content: string,
   ): Promise<any> {
     console.log("Adding comment:", { authorId, postId, content });
 
@@ -279,16 +300,16 @@ export default class FeedService {
           content: comments.content,
           createdAt:
             sql<string>`to_char(${comments.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`.as(
-              "createdAt"
+              "createdAt",
             ), // Format as ISO string
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           likesCount: sql<number>`COALESCE(COUNT(${postLikes.id}), 0)`.as(
-            "likesCount"
+            "likesCount",
           ), // Ensure 0 if no likes
           isLiked:
             sql<boolean>`COALESCE(BOOL_OR(${postLikes.userId} = ${authorId}), FALSE)`.as(
-              "isLiked"
+              "isLiked",
             ), // Ensure FALSE if no likes
         })
         .from(comments)
@@ -304,7 +325,7 @@ export default class FeedService {
           comments.createdAt,
           users.name,
           users.profileImageUrl,
-          posts.id // Include posts.id in groupBy to avoid aggregation issues
+          posts.id, // Include posts.id in groupBy to avoid aggregation issues
         );
 
       return fullComment;
@@ -316,14 +337,14 @@ export default class FeedService {
 
   static async getAllCommentsByPostId(
     postId: number,
-    authorId: number
+    authorId: number,
   ): Promise<any> {
     const userId = authorId; // Use the provided authorId as userId
     console.log(
       "Fetching comments for postId:",
       postId,
       "with userId:",
-      userId
+      userId,
     );
     try {
       const commentsResult = await postgreDb
@@ -334,16 +355,16 @@ export default class FeedService {
           content: comments.content,
           createdAt:
             sql<string>`to_char(${comments.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`.as(
-              "createdAt"
+              "createdAt",
             ), // Format as ISO string
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           likesCount: sql<number>`COALESCE(COUNT(${postLikes.id}), 0)`.as(
-            "likesCount"
+            "likesCount",
           ), // Count post likes
           isLiked: userId
             ? sql<boolean>`COALESCE(BOOL_OR(${postLikes.userId} = ${userId}), FALSE)`.as(
-                "isLiked"
+                "isLiked",
               ) // Check if user liked the post
             : sql<boolean>`FALSE`.as("isLiked"), // Default to FALSE if no userId
         })
@@ -360,7 +381,7 @@ export default class FeedService {
           comments.createdAt,
           users.name,
           users.profileImageUrl,
-          posts.id // Include posts.id in groupBy to avoid aggregation issues
+          posts.id, // Include posts.id in groupBy to avoid aggregation issues
         )
         .orderBy(desc(comments.createdAt));
 

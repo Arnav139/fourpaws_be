@@ -38,7 +38,7 @@ export const users: any = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 export const follows = pgTable(
@@ -55,7 +55,7 @@ export const follows = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 // pet
@@ -97,7 +97,7 @@ export const pets: any = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 export const vaccination = pgTable(
@@ -123,7 +123,7 @@ export const vaccination = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 export const healthcheckup = pgTable(
@@ -149,7 +149,7 @@ export const healthcheckup = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 export const posts = pgTable(
@@ -160,17 +160,19 @@ export const posts = pgTable(
     content: text("content").notNull(),
     image: jsonb("image_url").$type<string[]>(),
     type: varchar("type").default("standard"),
-    metadata: jsonb("metadata").$type<object>(), 
+    metadata: jsonb("metadata").$type<object>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 export const collectibles = pgTable(
@@ -193,7 +195,7 @@ export const collectibles = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 // Comments table
@@ -207,13 +209,13 @@ export const comments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
   },
   (table) => [
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 // Likes table
@@ -232,7 +234,7 @@ export const postLikes = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 // User's collectibles (junction table for many-to-many relationship)
@@ -251,7 +253,7 @@ export const userCollectibles = pgTable(
     {
       pk: primaryKey({ columns: [table.id] }),
     },
-  ]
+  ],
 );
 
 // Relations
@@ -306,7 +308,7 @@ export const collectiblesRelations = relations(
       references: [users.id],
     }),
     buyer: many(userCollectibles),
-  })
+  }),
 );
 
 // Add collectibles relations
@@ -325,7 +327,7 @@ export const userCollectiblesRelations = relations(
       fields: [userCollectibles.petId],
       references: [pets.id],
     }),
-  })
+  }),
 );
 
 export const commentsRelations = relations(comments, ({ one }) => ({

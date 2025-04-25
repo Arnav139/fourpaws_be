@@ -3,6 +3,7 @@ import cloudinary from "../config/cloudinary";
 import { FeedService, UserService } from "../services/index";
 import { number } from "zod";
 import { numeric } from "drizzle-orm/pg-core";
+import { formatPost } from "../utils/helpers";
 
 interface Post {
   id: string;
@@ -869,13 +870,11 @@ export default class FeedController {
       const authorId = req["user"]["userId"] as any;
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
-  
 
       const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
         parseInt(postId),
         authorId,
       );
-    
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
 
@@ -930,13 +929,15 @@ export default class FeedController {
         limit,
       );
 
+      const formattedPosts = posts.map(formatPost);
+
       const hasMore = cursor + limit < totalPosts;
       const nextCursor = hasMore ? cursor + limit : undefined;
 
       // Response
       res.status(200).json({
         success: true,
-        posts,
+        posts: formattedPosts,
         hasMore,
         nextCursor,
       });
@@ -952,15 +953,16 @@ export default class FeedController {
 
   static createPost = async (req: Request, res: any) => {
     try {
-      const email = req["user"]["email"] as string;
-      const authorId = req["user"]["userId"] as number;
-
+      // Ensure authentication – we assume middleware has set req.user.
+      const email = req["user"]?.email as string;
+      const authorId = req["user"]?.userId as number;
       if (!email || !authorId) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized user" });
       }
 
+      // Verify the user exists.
       const user = await UserService.getUser(email);
       if (!user) {
         return res
@@ -968,97 +970,133 @@ export default class FeedController {
           .json({ success: false, message: "User not found" });
       }
 
-      const { content, type = "standard", ...typeSpecificData } = req.body;
+      console.log("jdfreq", req.body);
 
-      // Validate content or media for standard post
-      const postImage = (req.files as any)?.postImage?.[0];
-      if (type === "standard" && !content?.trim() && !postImage) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Content or media is required for standard post" });
+      // Destructure common properties.
+      const { content = "", type = "standard", ...typeSpecificData } = req.body;
+
+      // Validate common fields for a standard post.
+      const postImageFile = null;
+      //   (
+      //   req.files as Express.Multer.File[] | undefined
+      // )?.[0];
+      if (type === "standard" && !content.trim() && !postImageFile) {
+        return res.status(400).json({
+          success: false,
+          message: "Content or media is required for a standard post",
+        });
       }
 
-      // Validate type-specific requirements
+      // Validate type-specific fields.
       switch (type) {
-        case "poll":
+        case "poll": {
           const { pollOptions, pollDuration } = typeSpecificData;
-          if (!pollOptions || pollOptions.length < 2 || !pollDuration || pollDuration <= 0) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Poll requires at least 2 options and a valid duration" });
+          console.log({ pollOptions, pollDuration });
+          if (
+            !pollOptions ||
+            pollOptions.length < 2 ||
+            !pollDuration ||
+            pollDuration <= 0
+          ) {
+            return res.status(400).json({
+              success: false,
+              message:
+                "Poll posts require at least 2 options and a valid duration",
+            });
           }
           break;
-        case "link":
+        }
+        case "link": {
           const { linkUrl } = typeSpecificData;
           if (!linkUrl) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Link URL is required" });
+            return res.status(400).json({
+              success: false,
+              message: "Link URL is required",
+            });
           }
           break;
-        case "campaign":
+        }
+        case "campaign": {
           const { campaignTitle, campaignGoal, deadline } = typeSpecificData;
-          if (!campaignTitle || !campaignGoal || campaignGoal <= 0 || !deadline) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Campaign title, goal, and deadline are required" });
+          if (
+            !campaignTitle ||
+            !campaignGoal ||
+            Number(campaignGoal) <= 0 ||
+            !deadline
+          ) {
+            return res.status(400).json({
+              success: false,
+              message: "Campaign title, goal, and deadline are required",
+            });
           }
           break;
-        case "volunteer":
+        }
+        case "volunteer": {
           const { volunteerRole, eventDate, location } = typeSpecificData;
           if (!volunteerRole || !eventDate || !location) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Volunteer role, event date, and location are required" });
+            return res.status(400).json({
+              success: false,
+              message: "Volunteer role, event date, and location are required",
+            });
           }
           break;
-        case "new_profile":
-          const { petProfileId, profilePetName, petBreed, petAvatar } = typeSpecificData;
-          if (!petProfileId || !profilePetName || !petBreed || !petAvatar) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Pet profile ID, name, breed, and avatar are required" });
+        }
+        case "new_profile": {
+          const { petProfileId, petName, petBreed, petAvatar } =
+            typeSpecificData;
+          if (!petProfileId || !petName || !petBreed || !petAvatar) {
+            return res.status(400).json({
+              success: false,
+              message: "Pet profile ID, name, breed, and avatar are required",
+            });
           }
           break;
-        case "sponsored":
+        }
+        case "sponsored": {
           const { sponsorName, sponsorLogo, adLink } = typeSpecificData;
           if (!sponsorName || !sponsorLogo || !adLink) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Sponsor name, logo, and ad link are required" });
+            return res.status(400).json({
+              success: false,
+              message: "Sponsor name, logo, and ad link are required",
+            });
           }
           break;
-        case "emergency":
+        }
+        case "emergency": {
           const { emergencyType, petName, contactPhone } = typeSpecificData;
           if (!emergencyType || !petName || !contactPhone) {
-            return res
-              .status(400)
-              .json({ success: false, message: "Emergency type, pet name, and contact phone are required" });
+            return res.status(400).json({
+              success: false,
+              message:
+                "Emergency type, pet name, and contact phone are required",
+            });
           }
           break;
+        }
+        // No additional checks for “standard” type.
         default:
-          if (type !== "standard") {
-            return res
-              .status(400)
-              .json({ success: false, message: "Invalid post type" });
-          }
+          break;
       }
 
-      // Handle image upload
+      // Process file upload if present.
       let imageUrl: string[] = [];
-      if (postImage) {
-        const mainImageDataUri = `data:${postImage.mimetype};base64,${postImage.buffer.toString("base64")}`;
-        const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
-          folder: "feed",
-        });
+      if (postImageFile) {
+        // Convert image buffer to data URI.
+        const mainImageDataUri = `data:${postImageFile.mimetype};base64,${postImageFile.buffer.toString("base64")}`;
+        const mainImageUpload = await cloudinary.uploader.upload(
+          mainImageDataUri,
+          {
+            folder: "feed",
+          },
+        );
         imageUrl = [mainImageUpload.secure_url];
       }
 
-      // Prepare metadata for type-specific data
+      // Prepare metadata from type-specific fields.
       const metadata: Record<string, any> = {};
       switch (type) {
         case "poll":
-          metadata.pollOptions = typeSpecificData.pollOptions;
+          metadata.pollOptions = JSON.parse(typeSpecificData.pollOptions);
           metadata.pollDuration = typeSpecificData.pollDuration;
           break;
         case "link":
@@ -1097,15 +1135,21 @@ export default class FeedController {
           metadata.emergencyImage = typeSpecificData.emergencyImage;
           metadata.isCritical = typeSpecificData.isCritical;
           break;
+        default:
+          // For standard posts, you might simply include any media URL.
+          break;
       }
 
-      const newPost = await FeedService.createPost({
+      // Build the service payload (notice that we include content, type, any image URL, and metadata)
+      const postPayload = {
         authorId,
         content: content || "",
         type,
-        imageUrl,
+        imageUrl, // may be an empty array in absence of an upload.
         metadata,
-      });
+      };
+
+      const newPost = await FeedService.createPost(postPayload);
 
       if (!newPost) {
         return res
@@ -1120,12 +1164,12 @@ export default class FeedController {
           ...newPost,
           authorName: user.name,
           authorAvatar: user.profileImageUrl,
-          isLiked: false,
-          commentsCount: 0,
           likesCount: 0,
+          commentsCount: 0,
+          isLiked: false,
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Create Post Error:", error);
       return res.status(500).json({ success: false, message: "Server error" });
     }
@@ -1218,7 +1262,8 @@ export default class FeedController {
           .status(404)
           .json({ success: false, error: "Post not found" });
       }
-      res.status(200).json({ success: true, post });
+      const formattedPost = formatPost(post);
+      res.status(200).json({ success: true, post: formattedPost });
     } catch (error) {
       console.error("Error fetching post:", error);
       res.status(500).json({ success: false, error: "Internal server error" });
@@ -1230,7 +1275,6 @@ export default class FeedController {
       const authorId = req["user"]["userId"] as any;
       const { postId } = req.params;
       const { content } = req.body;
-
 
       if (!authorId || !postId || !content) {
         return res.status(400).json({

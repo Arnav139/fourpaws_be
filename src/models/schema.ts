@@ -158,8 +158,9 @@ export const posts = pgTable(
     id: serial("id").primaryKey(),
     authorId: integer("author_id").references(() => users.id),
     content: text("content").notNull(),
-    image: jsonb("Image_url").$type<string[]>(),
+    image: jsonb("image_url").$type<string[]>(),
     type: varchar("type").default("standard"),
+    metadata: jsonb("metadata").$type<object>(), 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -293,10 +294,6 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
     fields: [posts.authorId],
     references: [users.id],
   }),
-  // pet: one(pets, {
-  //   fields: [posts.petId],
-  //   references: [pets.id],
-  // }),
   comments: many(comments),
   likes: many(postLikes),
 }));

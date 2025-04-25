@@ -10,32 +10,196 @@ export default class FeedService {
     content,
     type,
     imageUrl,
+    metadata,
   }: {
     authorId: number;
     content: string;
     type: string;
-    imageUrl: string;
+    imageUrl: string[];
+    metadata: object;
   }) => {
     try {
-      const newPost = await postgreDb
+      // Insert the new post
+      const [newPost] = await postgreDb
         .insert(posts)
         .values({
-          authorId: authorId,
-          content: content,
-          type: type,
+          authorId,
+          content,
+          type,
           image: imageUrl,
+          metadata,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as unknown as typeof posts.$inferInsert)
         .returning({
-          mediaUrl: posts.image,
-          content: posts.content,
           id: posts.id,
+          content: posts.content,
           type: posts.type,
+          image: posts.image,
+          metadata: posts.metadata,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
+          authorId: posts.authorId,
         });
-      return newPost[0];
+
+      // Fetch author details
+      const [author] = await postgreDb
+        .select({
+          name: users.name,
+          profileImageUrl: users.profileImageUrl,
+        })
+        .from(users)
+        .where(eq(users.id, authorId));
+
+      // Base post structure
+      const now = newPost.createdAt.toISOString();
+      let formattedPost: any = {
+        id: newPost.id.toString(),
+        authorId: newPost.authorId.toString(),
+        authorName: author.name,
+        authorAvatar: author.profileImageUrl,
+        content: newPost.content,
+        createdAt: now,
+        updatedAt: newPost.updatedAt.toISOString(),
+        type: newPost.type,
+        likesCount: 0,
+        commentsCount: 0,
+        isLiked: false,
+      };
+
+      // Type-specific formatting
+      switch (type) {
+        case "poll":
+          const pollMetadata = newPost.metadata as {
+            pollOptions: { text: string }[];
+            pollDuration: number;
+          };
+          formattedPost = {
+            ...formattedPost,
+            pollOptions: pollMetadata.pollOptions.map((opt, index) => ({
+              id: `opt${index + 1}`,
+              text: opt.text,
+              votes: 0,
+              percentage: 0,
+            })),
+            pollDuration: pollMetadata.pollDuration,
+            expiresAt: new Date(
+              Date.now() + pollMetadata.pollDuration * 3600000
+            ).toISOString(),
+            totalVotes: 0,
+            userVoted: false,
+          };
+          break;
+        case "link":
+          const linkMetadata = newPost.metadata as { linkUrl: string };
+          formattedPost = {
+            ...formattedPost,
+            linkUrl: linkMetadata.linkUrl,
+            linkTitle: "Example Link Title", // Placeholder; implement link preview service in production
+            linkDescription: "This is a placeholder for link description",
+            linkImage: "https://via.placeholder.com/300",
+          };
+          break;
+        case "campaign":
+          const campaignMetadata = newPost.metadata as {
+            campaignTitle: string;
+            campaignGoal: number;
+            deadline: string;
+            campaignImage?: string;
+          };
+          formattedPost = {
+            ...formattedPost,
+            campaignTitle: campaignMetadata.campaignTitle,
+            campaignGoal: campaignMetadata.campaignGoal,
+            currentAmount: 0,
+            deadline: campaignMetadata.deadline,
+            campaignImage: campaignMetadata.campaignImage,
+          };
+          break;
+        case "volunteer":
+          const volunteerMetadata = newPost.metadata as {
+            volunteerRole: string;
+            eventDate: string;
+            location: string;
+            eventImage?: string;
+          };
+          formattedPost = {
+            ...formattedPost,
+            volunteerRole: volunteerMetadata.volunteerRole,
+            eventDate: volunteerMetadata.eventDate,
+            location: volunteerMetadata.location,
+            eventImage: volunteerMetadata.eventImage,
+          };
+          break;
+        case "new_profile":
+          const profileMetadata = newPost.metadata as {
+            petProfileId: string;
+            petName: string;
+            petBreed: string;
+            petAvatar: string;
+            petAge?: string;
+          };
+          formattedPost = {
+            ...formattedPost,
+            petProfileId: profileMetadata.petProfileId,
+            petName: profileMetadata.petName,
+            petBreed: profileMetadata.petBreed,
+            petAvatar: profileMetadata.petAvatar,
+            petAge: profileMetadata.petAge,
+          };
+          break;
+        case "sponsored":
+          const sponsoredMetadata = newPost.metadata as {
+            sponsorName: string;
+            sponsorLogo: string;
+            adLink: string;
+            adDescription?: string;
+          };
+          formattedPost = {
+            ...formattedPost,
+            sponsorName: sponsoredMetadata.sponsorName,
+            sponsorLogo: sponsoredMetadata.sponsorLogo,
+            adLink: sponsoredMetadata.adLink,
+            adDescription: sponsoredMetadata.adDescription,
+          };
+          break;
+        case "emergency":
+          const emergencyMetadata = newPost.metadata as {
+            emergencyType: "pawwlice" | "medical";
+            petName: string;
+            lastSeen?: string;
+            contactPhone: string;
+            emergencyImage?: string;
+            isCritical: boolean;
+          };
+          formattedPost = {
+            ...formattedPost,
+            emergencyType: emergencyMetadata.emergencyType,
+            petName: emergencyMetadata.petName,
+            lastSeen: emergencyMetadata.lastSeen,
+            contactPhone: emergencyMetadata.contactPhone,
+            emergencyImage: emergencyMetadata.emergencyImage,
+            isCritical: emergencyMetadata.isCritical,
+          };
+          break;
+        default:
+          // Standard post
+          formattedPost = {
+            ...formattedPost,
+            mediaUrl: newPost.image?.[0],
+            media: newPost.image?.[0]
+              ? [
+                  {
+                    id: `m${newPost.id}`,
+                    type: "image",
+                    url: newPost.image[0],
+                  },
+                ]
+              : undefined,
+          };
+      }
+
+      return formattedPost;
     } catch (error) {
       console.error("Error creating post:", error);
       throw new Error("Failed to create post");

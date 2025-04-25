@@ -952,8 +952,8 @@ export default class FeedController {
 
   static createPost = async (req: Request, res: any) => {
     try {
-      const email = req["user"]["email"] as any;
-      const authorId = req["user"]["userId"] as any;
+      const email = req["user"]["email"] as string;
+      const authorId = req["user"]["userId"] as number;
 
       if (!email || !authorId) {
         return res
@@ -968,34 +968,143 @@ export default class FeedController {
           .json({ success: false, message: "User not found" });
       }
 
-      const { content, type } = req.body;
+      const { content, type = "standard", ...typeSpecificData } = req.body;
 
-      if (!type) {
+      // Validate content or media for standard post
+      const postImage = (req.files as any)?.postImage?.[0];
+      if (type === "standard" && !content?.trim() && !postImage) {
         return res
           .status(400)
-          .json({ success: false, message: "Type are required" });
+          .json({ success: false, message: "Content or media is required for standard post" });
       }
 
-      let imageUrl = null;
-      const postImage = (req.files as any).postImage?.[0];
+      // Validate type-specific requirements
+      switch (type) {
+        case "poll":
+          const { pollOptions, pollDuration } = typeSpecificData;
+          if (!pollOptions || pollOptions.length < 2 || !pollDuration || pollDuration <= 0) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Poll requires at least 2 options and a valid duration" });
+          }
+          break;
+        case "link":
+          const { linkUrl } = typeSpecificData;
+          if (!linkUrl) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Link URL is required" });
+          }
+          break;
+        case "campaign":
+          const { campaignTitle, campaignGoal, deadline } = typeSpecificData;
+          if (!campaignTitle || !campaignGoal || campaignGoal <= 0 || !deadline) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Campaign title, goal, and deadline are required" });
+          }
+          break;
+        case "volunteer":
+          const { volunteerRole, eventDate, location } = typeSpecificData;
+          if (!volunteerRole || !eventDate || !location) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Volunteer role, event date, and location are required" });
+          }
+          break;
+        case "new_profile":
+          const { petProfileId, profilePetName, petBreed, petAvatar } = typeSpecificData;
+          if (!petProfileId || !profilePetName || !petBreed || !petAvatar) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Pet profile ID, name, breed, and avatar are required" });
+          }
+          break;
+        case "sponsored":
+          const { sponsorName, sponsorLogo, adLink } = typeSpecificData;
+          if (!sponsorName || !sponsorLogo || !adLink) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Sponsor name, logo, and ad link are required" });
+          }
+          break;
+        case "emergency":
+          const { emergencyType, petName, contactPhone } = typeSpecificData;
+          if (!emergencyType || !petName || !contactPhone) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Emergency type, pet name, and contact phone are required" });
+          }
+          break;
+        default:
+          if (type !== "standard") {
+            return res
+              .status(400)
+              .json({ success: false, message: "Invalid post type" });
+          }
+      }
 
+      // Handle image upload
+      let imageUrl: string[] = [];
       if (postImage) {
-        const mainImageDataUri = `data:${
-          postImage.mimetype
-        };base64,${postImage.buffer.toString("base64")}`;
-        const mainImageUpload = await cloudinary.uploader.upload(
-          mainImageDataUri,
-          {
-            folder: "feed",
-          },
-        );
-        imageUrl = mainImageUpload.secure_url;
+        const mainImageDataUri = `data:${postImage.mimetype};base64,${postImage.buffer.toString("base64")}`;
+        const mainImageUpload = await cloudinary.uploader.upload(mainImageDataUri, {
+          folder: "feed",
+        });
+        imageUrl = [mainImageUpload.secure_url];
       }
+
+      // Prepare metadata for type-specific data
+      const metadata: Record<string, any> = {};
+      switch (type) {
+        case "poll":
+          metadata.pollOptions = typeSpecificData.pollOptions;
+          metadata.pollDuration = typeSpecificData.pollDuration;
+          break;
+        case "link":
+          metadata.linkUrl = typeSpecificData.linkUrl;
+          break;
+        case "campaign":
+          metadata.campaignTitle = typeSpecificData.campaignTitle;
+          metadata.campaignGoal = typeSpecificData.campaignGoal;
+          metadata.deadline = typeSpecificData.deadline;
+          metadata.campaignImage = typeSpecificData.campaignImage;
+          break;
+        case "volunteer":
+          metadata.volunteerRole = typeSpecificData.volunteerRole;
+          metadata.eventDate = typeSpecificData.eventDate;
+          metadata.location = typeSpecificData.location;
+          metadata.eventImage = typeSpecificData.eventImage;
+          break;
+        case "new_profile":
+          metadata.petProfileId = typeSpecificData.petProfileId;
+          metadata.petName = typeSpecificData.petName;
+          metadata.petBreed = typeSpecificData.petBreed;
+          metadata.petAvatar = typeSpecificData.petAvatar;
+          metadata.petAge = typeSpecificData.petAge;
+          break;
+        case "sponsored":
+          metadata.sponsorName = typeSpecificData.sponsorName;
+          metadata.sponsorLogo = typeSpecificData.sponsorLogo;
+          metadata.adLink = typeSpecificData.adLink;
+          metadata.adDescription = typeSpecificData.adDescription;
+          break;
+        case "emergency":
+          metadata.emergencyType = typeSpecificData.emergencyType;
+          metadata.petName = typeSpecificData.petName;
+          metadata.lastSeen = typeSpecificData.lastSeen;
+          metadata.contactPhone = typeSpecificData.contactPhone;
+          metadata.emergencyImage = typeSpecificData.emergencyImage;
+          metadata.isCritical = typeSpecificData.isCritical;
+          break;
+      }
+
       const newPost = await FeedService.createPost({
         authorId,
-        content,
+        content: content || "",
         type,
-        imageUrl, // pass as array
+        imageUrl,
+        metadata,
       });
 
       if (!newPost) {
@@ -1014,7 +1123,7 @@ export default class FeedController {
           isLiked: false,
           commentsCount: 0,
           likesCount: 0,
-        }, // Assuming you have the user's name and avatar URL
+        },
       });
     } catch (error: any) {
       console.error("Create Post Error:", error);

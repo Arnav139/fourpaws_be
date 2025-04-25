@@ -5,29 +5,69 @@ import { TypeOf } from "zod";
 import { alias } from "drizzle-orm/gel-core";
 
 export default class FeedService {
-  static createPost = async ({
-    authorId,
-    content,
-    type,
-    imageUrl,
-    metadata,
-  }: {
-    authorId: number;
-    content: string;
-    type: string;
-    imageUrl: string[];
-    metadata: object;
-  }) => {
+  private static getPostQuery = (userId: number) => {
+    return postgreDb
+      .select({
+        id: posts.id,
+        content: posts.content,
+        image: posts.image,
+        type: posts.type,
+        metadata: posts.metadata,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        authorName: users.name,
+        authorAvatar: users.profileImageUrl,
+        commentsCount: sql`COUNT(DISTINCT ${comments.id})`.as("commentsCount"),
+        likesCount: sql`COUNT(DISTINCT ${postLikes.id})`.as("likesCount"),
+        isLiked: sql`
+          CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM ${postLikes}
+              WHERE ${postLikes.postId} = ${posts.id}
+              AND ${postLikes.userId} = ${userId}
+            ) THEN true
+            ELSE false
+          END
+        `.as("isLiked"),
+        media: sql`
+          CASE
+            WHEN ${posts.image} IS NOT NULL THEN jsonb_build_array(
+              jsonb_build_object('id', CONCAT('m', ${posts.id}), 'type', 'image', 'url', ${posts.image})
+            )
+            ELSE '[]'::jsonb
+          END
+        `.as("media"),
+      })
+      .from(posts)
+      .leftJoin(users, sql`${posts.authorId} = ${users.id}`)
+      .leftJoin(comments, sql`${comments.postId} = ${posts.id}`)
+      .leftJoin(postLikes, sql`${postLikes.postId} = ${posts.id}`)
+      .groupBy(
+        posts.id,
+        users.name,
+        users.profileImageUrl,
+        posts.content,
+        posts.image,
+        posts.type,
+        posts.createdAt,
+        posts.updatedAt,
+        posts.metadata,
+      )
+      .orderBy(desc(posts.createdAt));
+  };
+
+  static createPost = async (data: any): Promise<any> => {
     try {
-      // Insert the new post
+      // Insert the new post into the DB.
       const [newPost] = await postgreDb
         .insert(posts)
         .values({
-          authorId,
-          content,
-          type,
-          image: imageUrl,
-          metadata,
+          authorId: data.authorId,
+          content: data.content,
+          type: data.type,
+          image: data.imageUrl,
+          metadata: data.metadata,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as unknown as typeof posts.$inferInsert)
@@ -42,24 +82,23 @@ export default class FeedService {
           authorId: posts.authorId,
         });
 
-      // Fetch author details
+      // Get author details for formatting.
       const [author] = await postgreDb
         .select({
           name: users.name,
           profileImageUrl: users.profileImageUrl,
         })
         .from(users)
-        .where(eq(users.id, authorId));
+        .where(eq(users.id, data.authorId));
 
-      // Base post structure
-      const now = newPost.createdAt.toISOString();
-      let formattedPost: any = {
+      // Build a base post object.
+      const basePost = {
         id: newPost.id.toString(),
         authorId: newPost.authorId.toString(),
         authorName: author.name,
         authorAvatar: author.profileImageUrl,
         content: newPost.content,
-        createdAt: now,
+        createdAt: newPost.createdAt.toISOString(),
         updatedAt: newPost.updatedAt.toISOString(),
         type: newPost.type,
         likesCount: 0,
@@ -67,72 +106,77 @@ export default class FeedService {
         isLiked: false,
       };
 
-      // Type-specific formatting
-      switch (type) {
-        case "poll":
-          const pollMetadata = newPost.metadata as {
+      // Apply type-specific formatting.
+      let formattedPost: any = { ...basePost };
+      switch (newPost.type) {
+        case "poll": {
+          const pollData = newPost.metadata as {
             pollOptions: { text: string }[];
             pollDuration: number;
           };
           formattedPost = {
-            ...formattedPost,
-            pollOptions: pollMetadata.pollOptions.map((opt, index) => ({
+            ...basePost,
+            pollOptions: pollData.pollOptions.map((opt, index) => ({
               id: `opt${index + 1}`,
               text: opt.text,
               votes: 0,
               percentage: 0,
             })),
-            pollDuration: pollMetadata.pollDuration,
+            pollDuration: pollData.pollDuration,
             expiresAt: new Date(
-              Date.now() + pollMetadata.pollDuration * 3600000
+              Date.now() + pollData.pollDuration * 3600000,
             ).toISOString(),
             totalVotes: 0,
             userVoted: false,
           };
           break;
-        case "link":
-          const linkMetadata = newPost.metadata as { linkUrl: string };
+        }
+        case "link": {
+          const linkData = newPost.metadata as { linkUrl: string };
           formattedPost = {
-            ...formattedPost,
-            linkUrl: linkMetadata.linkUrl,
-            linkTitle: "Example Link Title", // Placeholder; implement link preview service in production
+            ...basePost,
+            linkUrl: linkData.linkUrl,
+            linkTitle: "Example Link Title", // In production, fetch via a preview service.
             linkDescription: "This is a placeholder for link description",
             linkImage: "https://via.placeholder.com/300",
           };
           break;
-        case "campaign":
-          const campaignMetadata = newPost.metadata as {
+        }
+        case "campaign": {
+          const campaignData = newPost.metadata as {
             campaignTitle: string;
             campaignGoal: number;
             deadline: string;
             campaignImage?: string;
           };
           formattedPost = {
-            ...formattedPost,
-            campaignTitle: campaignMetadata.campaignTitle,
-            campaignGoal: campaignMetadata.campaignGoal,
+            ...basePost,
+            campaignTitle: campaignData.campaignTitle,
+            campaignGoal: campaignData.campaignGoal,
             currentAmount: 0,
-            deadline: campaignMetadata.deadline,
-            campaignImage: campaignMetadata.campaignImage,
+            deadline: campaignData.deadline,
+            campaignImage: campaignData.campaignImage,
           };
           break;
-        case "volunteer":
-          const volunteerMetadata = newPost.metadata as {
+        }
+        case "volunteer": {
+          const volunteerData = newPost.metadata as {
             volunteerRole: string;
             eventDate: string;
             location: string;
             eventImage?: string;
           };
           formattedPost = {
-            ...formattedPost,
-            volunteerRole: volunteerMetadata.volunteerRole,
-            eventDate: volunteerMetadata.eventDate,
-            location: volunteerMetadata.location,
-            eventImage: volunteerMetadata.eventImage,
+            ...basePost,
+            volunteerRole: volunteerData.volunteerRole,
+            eventDate: volunteerData.eventDate,
+            location: volunteerData.location,
+            eventImage: volunteerData.eventImage,
           };
           break;
-        case "new_profile":
-          const profileMetadata = newPost.metadata as {
+        }
+        case "new_profile": {
+          const profileData = newPost.metadata as {
             petProfileId: string;
             petName: string;
             petBreed: string;
@@ -140,31 +184,33 @@ export default class FeedService {
             petAge?: string;
           };
           formattedPost = {
-            ...formattedPost,
-            petProfileId: profileMetadata.petProfileId,
-            petName: profileMetadata.petName,
-            petBreed: profileMetadata.petBreed,
-            petAvatar: profileMetadata.petAvatar,
-            petAge: profileMetadata.petAge,
+            ...basePost,
+            petProfileId: profileData.petProfileId,
+            petName: profileData.petName,
+            petBreed: profileData.petBreed,
+            petAvatar: profileData.petAvatar,
+            petAge: profileData.petAge,
           };
           break;
-        case "sponsored":
-          const sponsoredMetadata = newPost.metadata as {
+        }
+        case "sponsored": {
+          const sponsoredData = newPost.metadata as {
             sponsorName: string;
             sponsorLogo: string;
             adLink: string;
             adDescription?: string;
           };
           formattedPost = {
-            ...formattedPost,
-            sponsorName: sponsoredMetadata.sponsorName,
-            sponsorLogo: sponsoredMetadata.sponsorLogo,
-            adLink: sponsoredMetadata.adLink,
-            adDescription: sponsoredMetadata.adDescription,
+            ...basePost,
+            sponsorName: sponsoredData.sponsorName,
+            sponsorLogo: sponsoredData.sponsorLogo,
+            adLink: sponsoredData.adLink,
+            adDescription: sponsoredData.adDescription,
           };
           break;
-        case "emergency":
-          const emergencyMetadata = newPost.metadata as {
+        }
+        case "emergency": {
+          const emergencyData = newPost.metadata as {
             emergencyType: "pawwlice" | "medical";
             petName: string;
             lastSeen?: string;
@@ -173,19 +219,20 @@ export default class FeedService {
             isCritical: boolean;
           };
           formattedPost = {
-            ...formattedPost,
-            emergencyType: emergencyMetadata.emergencyType,
-            petName: emergencyMetadata.petName,
-            lastSeen: emergencyMetadata.lastSeen,
-            contactPhone: emergencyMetadata.contactPhone,
-            emergencyImage: emergencyMetadata.emergencyImage,
-            isCritical: emergencyMetadata.isCritical,
+            ...basePost,
+            emergencyType: emergencyData.emergencyType,
+            petName: emergencyData.petName,
+            lastSeen: emergencyData.lastSeen,
+            contactPhone: emergencyData.contactPhone,
+            emergencyImage: emergencyData.emergencyImage,
+            isCritical: emergencyData.isCritical,
           };
           break;
-        default:
-          // Standard post
+        }
+        default: {
+          // Standard post.
           formattedPost = {
-            ...formattedPost,
+            ...basePost,
             mediaUrl: newPost.image?.[0],
             media: newPost.image?.[0]
               ? [
@@ -197,11 +244,12 @@ export default class FeedService {
                 ]
               : undefined,
           };
+        }
       }
 
       return formattedPost;
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error("Error in FeedService.createPost:", error);
       throw new Error("Failed to create post");
     }
   };
@@ -218,56 +266,7 @@ export default class FeedService {
 
       const totalPosts = totalPostsResult[0]?.count || 0;
 
-      const postsResult = await postgreDb
-        .select({
-          id: posts.id,
-          content: posts.content,
-          image: posts.image,
-          type: posts.type,
-          createdAt: posts.createdAt,
-          updatedAt: posts.updatedAt,
-          authorName: users.name,
-          authorAvatar: users.profileImageUrl,
-          commentsCount: sql`COUNT(DISTINCT ${comments.id})`.as(
-            "commentsCount",
-          ),
-          likesCount: sql`COUNT(DISTINCT ${postLikes.id})`.as("likesCount"),
-          isLiked: sql`
-            CASE
-              WHEN EXISTS (
-                SELECT 1
-                FROM ${postLikes}
-                WHERE ${postLikes.postId} = ${posts.id}
-                AND ${postLikes.userId} = ${userId}
-              ) THEN true
-              ELSE false
-            END
-          `.as("isLiked"),
-
-          media: sql`
-            CASE
-              WHEN ${posts.image} IS NOT NULL THEN jsonb_build_array(
-                jsonb_build_object('type', 'image', 'url', ${posts.image})
-              )
-              ELSE '[]'::jsonb
-            END
-          `.as("media"),
-        })
-        .from(posts)
-        .leftJoin(users, sql`${posts.authorId} = ${users.id}`)
-        .leftJoin(comments, sql`${comments.postId} = ${posts.id}`)
-        .leftJoin(postLikes, sql`${postLikes.postId} = ${posts.id}`)
-        .groupBy(
-          posts.id,
-          users.name,
-          users.profileImageUrl,
-          posts.content,
-          posts.image,
-          posts.type,
-          posts.createdAt,
-          posts.updatedAt,
-        )
-        .orderBy(desc(posts.createdAt))
+      const postsResult = await this.getPostQuery(userId)
         .offset(cursor)
         .limit(limit);
 
@@ -283,55 +282,7 @@ export default class FeedService {
 
   static async getPostById(postId: number, authorId: number): Promise<any> {
     try {
-      const post = await postgreDb
-        .select({
-          id: posts.id,
-          content: posts.content,
-          image: posts.image,
-          type: posts.type,
-          createdAt: posts.createdAt,
-          updatedAt: posts.updatedAt,
-          authorName: users.name,
-          authorAvatar: users.profileImageUrl,
-          commentsCount: sql`COUNT(DISTINCT ${comments.id})`.as(
-            "commentsCount",
-          ),
-          likesCount: sql`COUNT(DISTINCT ${postLikes.id})`.as("likesCount"),
-          isLiked: sql`
-            CASE
-              WHEN EXISTS (
-                SELECT 1
-                FROM ${postLikes}
-                WHERE ${postLikes.postId} = ${posts.id}
-                AND ${postLikes.userId} = ${authorId}
-              ) THEN true
-              ELSE false
-            END
-          `.as("isLiked"),
-
-          media: sql`
-            CASE
-              WHEN ${posts.image} IS NOT NULL THEN jsonb_build_array(
-                jsonb_build_object('type', 'image', 'url', ${posts.image})
-              )
-              ELSE '[]'::jsonb
-            END
-          `.as("media"),
-        })
-        .from(posts)
-        .leftJoin(users, eq(posts.authorId, users.id))
-        .leftJoin(comments, eq(comments.authorId, comments.id))
-        .leftJoin(postLikes, eq(postLikes.postId, posts.id))
-        .groupBy(
-          posts.id,
-          users.name,
-          users.profileImageUrl,
-          posts.content,
-          posts.image,
-          posts.type,
-          posts.createdAt,
-          posts.updatedAt,
-        )
+      const post = await this.getPostQuery(authorId)
         .where(eq(posts.id, postId))
         .limit(1);
 
@@ -399,7 +350,6 @@ export default class FeedService {
     authorId: number,
     commentId: number,
   ): Promise<boolean> {
-  
     try {
       const existingLike = await postgreDb
         .select()
@@ -440,7 +390,6 @@ export default class FeedService {
     postId: number,
     content: string,
   ): Promise<any> {
-
     try {
       // Insert the new comment
       const [insertedComment] = await postgreDb
@@ -529,7 +478,7 @@ export default class FeedService {
         .from(comments)
         .innerJoin(posts, eq(comments.postId, posts.id)) // Join with posts
         .leftJoin(users, eq(comments.authorId, users.id)) // Join with users for author info
-        .leftJoin(postLikes, eq(postLikes.postId, posts.id)) // Join with postLikes for likes
+        .leftJoin(postLikes, eq(postLikes.commentId, comments.id)) // Join with postLikes for likes
         .where(eq(comments.postId, postId))
         .groupBy(
           comments.id,

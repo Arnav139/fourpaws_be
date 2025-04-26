@@ -1079,7 +1079,7 @@ export default class FeedController {
       }
 
       // Process file upload if present.
-      let imageUrl: string[] = [];
+      let imageUrl: string = undefined;
       if (postImageFile) {
         // Convert image buffer to data URI.
         const mainImageDataUri = `data:${postImageFile.mimetype};base64,${postImageFile.buffer.toString("base64")}`;
@@ -1089,7 +1089,7 @@ export default class FeedController {
             folder: "feed",
           },
         );
-        imageUrl = [mainImageUpload.secure_url];
+        imageUrl = mainImageUpload.secure_url;
       }
 
       // Prepare metadata from type-specific fields.

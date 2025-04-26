@@ -1,4 +1,4 @@
-export const formatPost = (post: any): any => {
+export const formatPost = async (post: any) => {
   // console.log(post);
 
   let formattedPost: any = {
@@ -12,6 +12,18 @@ export const formatPost = (post: any): any => {
     likesCount: post.likesCount || 0,
     commentsCount: post.commentsCount || 0,
     isLiked: post.isLiked || false,
+
+    // putting image in the feed posts if available for now
+    mediaUrl: post.image ? post.image : undefined,
+    media: post.image
+      ? [
+          {
+            id: `m${post.id}`,
+            type: "image",
+            url: post.image,
+          },
+        ]
+      : undefined,
   };
 
   switch (post.type) {
@@ -41,12 +53,13 @@ export const formatPost = (post: any): any => {
     case "link": {
       // Assuming post.metadata = { linkUrl: string }
       const linkData = post.metadata as { linkUrl: string };
+      let previewData = await fetchLinkPreview(linkData.linkUrl);
       formattedPost = {
         ...formattedPost,
         linkUrl: linkData.linkUrl,
-        linkTitle: "Example Link Title", // In production, fetch via a link preview service.
-        linkDescription: "This is a placeholder for link description",
-        linkImage: "https://via.placeholder.com/300",
+        linkTitle: previewData.title,
+        linkDescription: previewData.description,
+        linkImage: previewData.image,
       };
       break;
     }
@@ -160,4 +173,68 @@ export const formatPost = (post: any): any => {
     }
   }
   return formattedPost;
+};
+
+export interface LinkPreviewData {
+  title: string;
+  description: string;
+  image: string;
+}
+
+export const fetchLinkPreview = async (
+  linkUrl: string,
+): Promise<LinkPreviewData> => {
+  // Use AbortController to implement a timeout.
+  const controller = new AbortController();
+  const timeout = 50; // 5 seconds
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    throw new Error("Not implemented");
+    const response = await fetch(linkUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status: ${response.status}`);
+    }
+    const html = await response.text();
+
+    // Parse the HTML string with DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // Helper function to get meta tag content using vanilla DOM APIs.
+    const getMetaTag = (name: string): string => {
+      const metaTagOg = doc.querySelector(`meta[property="og:${name}"]`);
+      if (metaTagOg && metaTagOg.getAttribute("content")) {
+        return metaTagOg.getAttribute("content")!; // non-null assertion
+      }
+      const metaTagName = doc.querySelector(`meta[name="${name}"]`);
+      if (metaTagName && metaTagName.getAttribute("content")) {
+        return metaTagName.getAttribute("content")!;
+      }
+      return "";
+    };
+
+    const title = getMetaTag("title") || doc.title || "No title available";
+    const description =
+      getMetaTag("description") ||
+      (doc.querySelector(`meta[name="description"]`)?.getAttribute("content") ??
+        "") ||
+      "No description available";
+    const image = getMetaTag("image") || "";
+
+    return { title, description, image };
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      console.error("Fetch request timed out:", error);
+    } else {
+      console.error("Error fetching link preview:", error);
+    }
+    return {
+      title: "Unavailable",
+      description: "Unable to fetch link preview",
+      image: "https://via.placeholder.com/300",
+    };
+  }
 };

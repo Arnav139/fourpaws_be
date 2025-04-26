@@ -929,7 +929,7 @@ export default class FeedController {
         limit,
       );
 
-      const formattedPosts = posts.map(formatPost);
+      const formattedPosts = await Promise.all(posts.map(formatPost));
 
       const hasMore = cursor + limit < totalPosts;
       const nextCursor = hasMore ? cursor + limit : undefined;
@@ -970,16 +970,12 @@ export default class FeedController {
           .json({ success: false, message: "User not found" });
       }
 
-      console.log("jdfreq", req.body);
-
       // Destructure common properties.
       const { content = "", type = "standard", ...typeSpecificData } = req.body;
 
       // Validate common fields for a standard post.
-      const postImageFile = null;
-      //   (
-      //   req.files as Express.Multer.File[] | undefined
-      // )?.[0];
+      const postImageFile = (req.files as { postImage: Express.Multer.File[] })
+        ?.postImage?.[0];
       if (type === "standard" && !content.trim() && !postImageFile) {
         return res.status(400).json({
           success: false,
@@ -1106,13 +1102,15 @@ export default class FeedController {
           metadata.campaignTitle = typeSpecificData.campaignTitle;
           metadata.campaignGoal = typeSpecificData.campaignGoal;
           metadata.deadline = typeSpecificData.deadline;
-          metadata.campaignImage = typeSpecificData.campaignImage;
+          metadata.campaignImage = imageUrl;
+          // metadata.campaignImage = typeSpecificData.campaignImage;
           break;
         case "volunteer":
           metadata.volunteerRole = typeSpecificData.volunteerRole;
           metadata.eventDate = typeSpecificData.eventDate;
           metadata.location = typeSpecificData.location;
-          metadata.eventImage = typeSpecificData.eventImage;
+          metadata.eventImage = imageUrl;
+          // metadata.eventImage = typeSpecificData.eventImage;
           break;
         case "new_profile":
           metadata.petProfileId = typeSpecificData.petProfileId;
@@ -1132,7 +1130,8 @@ export default class FeedController {
           metadata.petName = typeSpecificData.petName;
           metadata.lastSeen = typeSpecificData.lastSeen;
           metadata.contactPhone = typeSpecificData.contactPhone;
-          metadata.emergencyImage = typeSpecificData.emergencyImage;
+          metadata.emergencyImage = imageUrl;
+          // metadata.emergencyImage = typeSpecificData.emergencyImage;
           metadata.isCritical = typeSpecificData.isCritical;
           break;
         default:
@@ -1262,7 +1261,7 @@ export default class FeedController {
           .status(404)
           .json({ success: false, error: "Post not found" });
       }
-      const formattedPost = formatPost(post);
+      const formattedPost = await formatPost(post);
       res.status(200).json({ success: true, post: formattedPost });
     } catch (error) {
       console.error("Error fetching post:", error);

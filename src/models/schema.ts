@@ -337,7 +337,7 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   }),
   author: one(users, {
     fields: [comments.authorId],
-    references: [users.id],
+    references:  [users.id],
   }),
 }));
 

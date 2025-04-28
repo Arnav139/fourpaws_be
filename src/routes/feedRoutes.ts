@@ -4,6 +4,7 @@ import { FeedController } from "../controllers/index";
 import { authenticateUser } from "../middlewares";
 import upload from "../middlewares/multer";
 import { checkFileSizeByType } from "../middlewares/checkFileSizeByType";
+import { check } from "drizzle-orm/gel-core";
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.post(
 router.post(
   "/posts",
   authenticateUser,
-  upload.fields([{ name: "postImage", maxCount: 1 }, checkFileSizeByType]),
+  upload.fields([{ name: "postImage", maxCount: 1 }, {name : "postVideo", maxCount:1}]),
   FeedController.createPost,
 );
 

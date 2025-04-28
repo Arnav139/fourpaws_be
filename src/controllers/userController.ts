@@ -42,6 +42,7 @@ export default class userController {
           .json({ success: false, message: "User not found" });
       }
       const { name, bio } = req.body;
+      console.log("req.body",name);
       let profileImageUrl: string | undefined;
       if (req.files?.profileImage?.length) {
         const profileImage = req.files.profileImage[0];

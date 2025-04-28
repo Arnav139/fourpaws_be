@@ -3,6 +3,7 @@ import postgreDb from "../config/dbConfig";
 import { comments, postLikes, posts, users } from "../models/schema";
 import { TypeOf } from "zod";
 import { alias } from "drizzle-orm/gel-core";
+import { format } from "path";
 
 export default class FeedService {
   private static getPostQuery = (userId: number) => {
@@ -10,7 +11,7 @@ export default class FeedService {
       .select({
         id: posts.id,
         content: posts.content,
-        image: posts.image,
+        media:posts.media,
         type: posts.type,
         metadata: posts.metadata,
         createdAt: posts.createdAt,
@@ -30,14 +31,6 @@ export default class FeedService {
             ELSE false
           END
         `.as("isLiked"),
-        media: sql`
-          CASE
-            WHEN ${posts.image} IS NOT NULL THEN jsonb_build_array(
-              jsonb_build_object('id', CONCAT('m', ${posts.id}), 'type', 'image', 'url', ${posts.image})
-            )
-            ELSE '[]'::jsonb
-          END
-        `.as("media"),
       })
       .from(posts)
       .leftJoin(users, sql`${posts.authorId} = ${users.id}`)
@@ -48,7 +41,7 @@ export default class FeedService {
         users.name,
         users.profileImageUrl,
         posts.content,
-        posts.image,
+        posts.media,
         posts.type,
         posts.createdAt,
         posts.updatedAt,
@@ -66,7 +59,7 @@ export default class FeedService {
           authorId: data.authorId,
           content: data.content,
           type: data.type,
-          image: data.imageUrl,
+          media : data.media,
           metadata: data.metadata,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -75,7 +68,7 @@ export default class FeedService {
           id: posts.id,
           content: posts.content,
           type: posts.type,
-          image: posts.image,
+          media : posts.media,
           metadata: posts.metadata,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
@@ -229,17 +222,37 @@ export default class FeedService {
           };
           break;
         }
+        case "story":{
+          const storyData = newPost.metadata as {
+            id: string,
+            authorId: string,
+            authorName: string,
+            authorAvatar: string,
+            hasUnseenStory : boolean,
+            isLive: boolean,
+        }; formattedPost = {
+            ...basePost,
+            id: storyData.id,
+            authorId: storyData.authorId,
+            authorName: storyData.authorName,
+            media: newPost.media?.[0],
+            authorAvatar: storyData.authorAvatar,
+            hasUnseenStory: storyData.hasUnseenStory,
+            isLive: storyData.isLive,
+           }
+           break;
+          }
         default: {
           // Standard post.
           formattedPost = {
             ...basePost,
-            mediaUrl: newPost.image?.[0],
-            media: newPost.image?.[0]
+            mediaUrl: newPost.media?.[0]?.url,
+            media: newPost.media?.[0]
               ? [
                   {
                     id: `m${newPost.id}`,
                     type: "image",
-                    url: newPost.image[0],
+                    url: newPost.media[0],
                   },
                 ]
               : undefined,

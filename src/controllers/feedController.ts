@@ -4,6 +4,7 @@ import { FeedService, UserService } from "../services/index";
 import { number } from "zod";
 import { numeric } from "drizzle-orm/pg-core";
 import { formatPost } from "../utils/helpers";
+import { uploadVideoToCloudinary } from "../utils/uploadVideotoCloudinary";
 
 interface Post {
   id: string;
@@ -873,7 +874,7 @@ export default class FeedController {
 
       const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
         parseInt(postId),
-        authorId,
+        authorId
       );
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
@@ -888,7 +889,7 @@ export default class FeedController {
 
       postComments.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       const startIndex = cursor ? parseInt(cursor) : 0;
@@ -926,7 +927,7 @@ export default class FeedController {
       const { posts, totalPosts } = await FeedService.getAllPosts(
         userId,
         cursor,
-        limit,
+        limit
       );
 
       const formattedPosts = await Promise.all(posts.map(formatPost));
@@ -951,7 +952,7 @@ export default class FeedController {
     res.status(200).json(mockStories);
   };
 
-  static createPost = async (req: Request, res: any) => {
+  static createPost = async (req: Request, res: Response): Promise<any> => {
     try {
       // Ensure authentication – we assume middleware has set req.user.
       const email = req["user"]?.email as string;
@@ -961,7 +962,7 @@ export default class FeedController {
           .status(401)
           .json({ success: false, message: "Unauthorized user" });
       }
-
+      console.log(req.files, "req.files");
       // Verify the user exists.
       const user = await UserService.getUser(email);
       if (!user) {
@@ -979,7 +980,16 @@ export default class FeedController {
       if (type === "standard" && !content.trim() && !postImageFile) {
         return res.status(400).json({
           success: false,
-          message: "Content or media is required for a standard post",
+          message: "Content or media is required for a standard/story post",
+        });
+      }
+
+      const postVideoFile = (req.files as { postVideo: Express.Multer.File[] })
+        ?.postVideo?.[0];
+      if (type === "story" && !postImageFile && !postVideoFile) {
+        return res.status(400).json({
+          success: false,
+          message: "Content or media is required for a story post",
         });
       }
 
@@ -1069,6 +1079,10 @@ export default class FeedController {
           }
           break;
         }
+        case "story": {
+          const { authorId, type, imageUrl, videoUrl, metadata } =
+            typeSpecificData;
+        }
         // No additional checks for “standard” type.
         default:
           break;
@@ -1078,16 +1092,24 @@ export default class FeedController {
       let imageUrl: string = undefined;
       if (postImageFile) {
         // Convert image buffer to data URI.
-        const mainImageDataUri = `data:${postImageFile.mimetype};base64,${postImageFile.buffer.toString("base64")}`;
+        const mainImageDataUri = `data:${
+          postImageFile.mimetype
+        };base64,${postImageFile.buffer.toString("base64")}`;
         const mainImageUpload = await cloudinary.uploader.upload(
           mainImageDataUri,
           {
             folder: "feed",
-          },
+          }
         );
         imageUrl = mainImageUpload.secure_url;
       }
 
+      let videoUrl: string = undefined;
+      if (postVideoFile) {
+        const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer)
+        videoUrl = videoUpload.secure_url;
+        console.log(videoUpload, "videoUrl");
+      }
       // Prepare metadata from type-specific fields.
       const metadata: Record<string, any> = {};
       switch (type) {
@@ -1139,12 +1161,20 @@ export default class FeedController {
           break;
       }
 
+      const id = Math.random().toString(36).substring(2, 9);
+
       // Build the service payload (notice that we include content, type, any image URL, and metadata)
       const postPayload = {
         authorId,
         content: content || "",
         type,
-        imageUrl, // may be an empty array in absence of an upload.
+        media: [
+          ...(imageUrl
+            ? [{id, type: "image", url: imageUrl }]
+            : videoUrl
+            ? [{id, type: "video", url: videoUrl }]
+            : []),
+        ],
         metadata,
       };
 
@@ -1195,7 +1225,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.togglePostLike(
         Number(userId),
-        Number(postId),
+        Number(postId)
       );
 
       res.status(200).json({
@@ -1232,7 +1262,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.toggleCommentLike(
         Number(userId),
-        Number(commentId),
+        Number(commentId)
       );
 
       res.status(200).json({
@@ -1254,7 +1284,7 @@ export default class FeedController {
       const { postId } = req.params;
       const post = await FeedService.getPostById(
         Number(postId),
-        Number(authorId),
+        Number(authorId)
       );
       if (!post) {
         return res
@@ -1284,7 +1314,7 @@ export default class FeedController {
       const newComment = await FeedService.addCommentByPostId(
         authorId,
         parseInt(postId),
-        content,
+        content
       );
       if (!newComment) {
         return res.status(500).json({

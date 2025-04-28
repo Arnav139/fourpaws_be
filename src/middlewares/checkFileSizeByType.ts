@@ -10,9 +10,9 @@ export const checkFileSizeByType = (req: Request, res: Response, next: NextFunct
     "image/png": 2 * 1024 * 1024,
     "image/gif": 2 * 1024 * 1024,
     "application/pdf": 5 * 1024 * 1024,
-    "video/mp4": 10 * 1024 * 1024,
-    "video/webm": 10 * 1024 * 1024,
-    "video/quicktime": 10 * 1024 * 1024,
+    "video/mp4": 16 * 1024 * 1024,
+    "video/webm": 16 * 1024 * 1024,
+    "video/quicktime": 16 * 1024 * 1024,
   };
 
   const maxAllowed = typeLimits[mimetype];

@@ -11,7 +11,7 @@ export default class userValidators {
 
   static validateUpdateUser = z.object({
     body: z.object({
-      userName: z.string({required_error:"userName is required"}).optional(),
+      name: z.string({required_error:"userName is required"}).optional(),
       bio: z.string({required_error:"bio is required"}).optional(),
     }).strict(),
   });

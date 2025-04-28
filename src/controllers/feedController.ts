@@ -959,8 +959,8 @@ export default class FeedController {
 
       res.status(200).json({
         success: true,
-        stories: storiesResult,
         message: "Stories fetched successfully",
+        stories: storiesResult,
       });
     } catch (error) {
       console.error("Error fetching stories:", error);

@@ -9,7 +9,7 @@ import { check } from "drizzle-orm/gel-core";
 const router = express.Router();
 
 router.get("/posts", authenticateUser, FeedController.getPosts);
-router.get("/stories", FeedController.getAllStories);
+router.get("/stories",authenticateUser, FeedController.getAllStories);
 router.get("/posts/:postId", authenticateUser, FeedController.getPostById);
 router.get(
   "/posts/:postId/comments",

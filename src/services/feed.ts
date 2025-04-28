@@ -1,17 +1,26 @@
-import { $Type, and, desc, eq, sql, not } from "drizzle-orm";
+import { $Type, and, desc, eq, not, sql } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
 import { comments, postLikes, posts, users } from "../models/schema";
-import { TypeOf } from "zod";
-import { alias } from "drizzle-orm/gel-core";
-import { format } from "path";
 
 export default class FeedService {
-  private static getPostQuery = (userId: number) => {
+  private static getPostQuery = (
+    userId: number,
+    postId?: number,
+    isStory?: boolean,
+  ) => {
+    const storyClause = isStory
+      ? eq(posts.type, "story")
+      : not(eq(posts.type, "story"));
+
+    const whereClause = postId
+      ? and(eq(posts.id, postId), storyClause)
+      : storyClause;
+
     return postgreDb
       .select({
         id: posts.id,
         content: posts.content,
-        media:posts.media,
+        media: posts.media,
         type: posts.type,
         metadata: posts.metadata,
         createdAt: posts.createdAt,
@@ -33,7 +42,7 @@ export default class FeedService {
         `.as("isLiked"),
       })
       .from(posts)
-      .where(not(eq(posts.type, "story")))
+      .where(whereClause)
       .leftJoin(users, sql`${posts.authorId} = ${users.id}`)
       .leftJoin(comments, sql`${comments.postId} = ${posts.id}`)
       .leftJoin(postLikes, sql`${postLikes.postId} = ${posts.id}`)
@@ -60,7 +69,7 @@ export default class FeedService {
           authorId: data.authorId,
           content: data.content,
           type: data.type,
-          media : data.media,
+          media: data.media,
           metadata: data.metadata,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -69,7 +78,7 @@ export default class FeedService {
           id: posts.id,
           content: posts.content,
           type: posts.type,
-          media : posts.media,
+          media: posts.media,
           metadata: posts.metadata,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
@@ -223,15 +232,16 @@ export default class FeedService {
           };
           break;
         }
-        case "story":{
+        case "story": {
           const storyData = newPost.metadata as {
-            id: string,
-            authorId: string,
-            authorName: string,
-            authorAvatar: string,
-            hasUnseenStory : boolean,
-            isLive: boolean,
-        }; formattedPost = {
+            id: string;
+            authorId: string;
+            authorName: string;
+            authorAvatar: string;
+            hasUnseenStory: boolean;
+            isLive: boolean;
+          };
+          formattedPost = {
             ...basePost,
             id: storyData.id,
             authorId: storyData.authorId,
@@ -240,9 +250,9 @@ export default class FeedService {
             authorAvatar: storyData.authorAvatar,
             hasUnseenStory: storyData.hasUnseenStory,
             isLive: storyData.isLive,
-           }
-           break;
-          }
+          };
+          break;
+        }
         default: {
           // Standard post.
           formattedPost = {
@@ -294,11 +304,20 @@ export default class FeedService {
     }
   };
 
+  static getAllStories = async (userId: number) => {
+    try {
+      const storiesResult = await this.getPostQuery(userId, undefined, true);
+
+      return storiesResult;
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      throw new Error("Failed to fetch stories");
+    }
+  };
+
   static async getPostById(postId: number, authorId: number): Promise<any> {
     try {
-      const post = await this.getPostQuery(authorId)
-        .where(eq(posts.id, postId))
-        .limit(1);
+      const post = await this.getPostQuery(authorId, postId).limit(1);
 
       if (post.length === 0) {
         return null;

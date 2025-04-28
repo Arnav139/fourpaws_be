@@ -13,6 +13,7 @@ export const formatPost = async (post: any) => {
     commentsCount: post.commentsCount || 0,
     isLiked: post.isLiked || false,
 
+    // putting image in the feed posts if available for now
     media: post.media,
   };
 

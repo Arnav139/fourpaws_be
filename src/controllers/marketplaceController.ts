@@ -1,54 +1,106 @@
 import { Request, Response } from "express";
+import cloudinary from "../config/cloudinary";
+import { CollectibleService } from "../services";
 
 const mockCollectibles = [
-    {
-      id: 'c1',
-      name: 'Bronze Bone',
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZG9nJTIwdG95fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60',
-      price: 50,
-      description: 'A rare golden bone collectible that brings good luck to your pet.',
-      rarity: 'rare',
-      category: 'Toys',
-      isPurchased: false
-    },
-    {
-      id: 'c2',
-      name: 'Diamond Collar',
-      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?q=80&w=1976&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      price: 120,
-      description: 'A luxurious diamond-studded collar for the most pampered pets.',
-      rarity: 'legendary',
-      category: 'Accessories',
-      isPurchased: false
-    },
-    {
-      id: 'c3',
-      name: 'Paw Print NFT',
-      image: 'https://images.unsplash.com/photo-1581888227599-779811939961?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGF3JTIwcHJpbnR8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60',
-      price: 75,
-      description: 'A digital collectible featuring a unique paw print design.',
-      rarity: 'uncommon',
-      category: 'Digital',
-      isPurchased: false
-    },
-    {
-      id: 'c4',
-      name: 'Pet Bed Deluxe',
-      image: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGV0JTIwYmVkfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60',
-      price: 90,
-      description: 'A comfortable and stylish bed for your virtual pet.',
-      rarity: 'common',
-      category: 'Furniture',
-      isPurchased: false
-    }
+  {
+    id: "c1",
+    name: "Bronze Bone",
+    image:
+      "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZG9nJTIwdG95fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
+    price: 50,
+    description:
+      "A rare golden bone collectible that brings good luck to your pet.",
+    rarity: "rare",
+    category: "Toys",
+    isPurchased: false,
+  },
+  {
+    id: "c2",
+    name: "Diamond Collar",
+    image:
+      "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?q=80&w=1976&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    price: 120,
+    description:
+      "A luxurious diamond-studded collar for the most pampered pets.",
+    rarity: "legendary",
+    category: "Accessories",
+    isPurchased: false,
+  },
+  {
+    id: "c3",
+    name: "Paw Print NFT",
+    image:
+      "https://images.unsplash.com/photo-1581888227599-779811939961?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGF3JTIwcHJpbnR8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60",
+    price: 75,
+    description: "A digital collectible featuring a unique paw print design.",
+    rarity: "uncommon",
+    category: "Digital",
+    isPurchased: false,
+  },
+  {
+    id: "c4",
+    name: "Pet Bed Deluxe",
+    image:
+      "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGV0JTIwYmVkfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
+    price: 90,
+    description: "A comfortable and stylish bed for your virtual pet.",
+    rarity: "common",
+    category: "Furniture",
+    isPurchased: false,
+  },
 ];
 
-export default class marketPlaceController{
+export default class marketPlaceController {
+  static getCollectibles = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const { name, price, description, rarity, category } = req.body;
+      if (!name && !price && !description && !rarity && !category) {
+        return res
+          .status(400)
+          .json({ success: false, message: "all fields are required" });
+      }
+      const collectibleImage = (req.files as any).image[0];
+      const collectibleImageDataUri = `data:${
+        collectibleImage.mimetype
+      };base64,${collectibleImage.buffer.toString("base64")}`;
+      const collectibleImageUpload = await cloudinary.uploader.upload(
+        collectibleImageDataUri,
+        {
+          folder: "collectibles",
+        }
+      );
 
-  static getCollectibles =async (req: Request, res: Response) => {
-     res.json(mockCollectibles);
+      const payload = {
+        name,
+        price,
+        description,
+        rarity,
+        category,
+        image: collectibleImageUpload.secure_url,
+      };
+      const newCollectible = await CollectibleService.createCollectible(
+        payload
+      );
+      const data = {
+        ...newCollectible,
+        isPurchased: false,
+      };
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "Collectible created successfully",
+          data,
+        });
+    } catch (error: any) {
+      console.error("Error in getCollectibles:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
   };
 }
-
-
-

@@ -13,17 +13,7 @@ export const formatPost = async (post: any) => {
     commentsCount: post.commentsCount || 0,
     isLiked: post.isLiked || false,
 
-    // putting image in the feed posts if available for now
-    mediaUrl: post.image ? post.image : undefined,
-    media: post.image
-      ? [
-          {
-            id: `m${post.id}`,
-            type: "image",
-            url: post.image,
-          },
-        ]
-      : undefined,
+    media: post.media,
   };
 
   switch (post.type) {
@@ -43,7 +33,7 @@ export const formatPost = async (post: any) => {
         })),
         pollDuration: pollData.pollDuration,
         expiresAt: new Date(
-          Date.now() + pollData.pollDuration * 3600000,
+          Date.now() + pollData.pollDuration * 3600000
         ).toISOString(),
         totalVotes: 0,
         userVoted: false,
@@ -159,16 +149,7 @@ export const formatPost = async (post: any) => {
       // Standard post – you might also consider grabbing the first media (if available)
       formattedPost = {
         ...formattedPost,
-        mediaUrl: post.image ? post.image : undefined,
-        media: post.image
-          ? [
-              {
-                id: `m${post.id}`,
-                type: "image",
-                url: post.image,
-              },
-            ]
-          : undefined,
+        media: post.media,
       };
     }
   }
@@ -182,7 +163,7 @@ export interface LinkPreviewData {
 }
 
 export const fetchLinkPreview = async (
-  linkUrl: string,
+  linkUrl: string
 ): Promise<LinkPreviewData> => {
   // Use AbortController to implement a timeout.
   const controller = new AbortController();

@@ -1108,7 +1108,6 @@ export default class FeedController {
       if (postVideoFile) {
         const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer)
         videoUrl = videoUpload.secure_url;
-        console.log(videoUpload, "videoUrl");
       }
       // Prepare metadata from type-specific fields.
       const metadata: Record<string, any> = {};

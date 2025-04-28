@@ -1,4 +1,4 @@
-import { $Type, and, desc, eq, sql } from "drizzle-orm";
+import { $Type, and, desc, eq, sql, not } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
 import { comments, postLikes, posts, users } from "../models/schema";
 import { TypeOf } from "zod";
@@ -33,6 +33,7 @@ export default class FeedService {
         `.as("isLiked"),
       })
       .from(posts)
+      .where(not(eq(posts.type, "story")))
       .leftJoin(users, sql`${posts.authorId} = ${users.id}`)
       .leftJoin(comments, sql`${comments.postId} = ${posts.id}`)
       .leftJoin(postLikes, sql`${postLikes.postId} = ${posts.id}`)

@@ -874,7 +874,7 @@ export default class FeedController {
 
       const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
         parseInt(postId),
-        authorId
+        authorId,
       );
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
@@ -889,7 +889,7 @@ export default class FeedController {
 
       postComments.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
       const startIndex = cursor ? parseInt(cursor) : 0;
@@ -927,7 +927,7 @@ export default class FeedController {
       const { posts, totalPosts } = await FeedService.getAllPosts(
         userId,
         cursor,
-        limit
+        limit,
       );
 
       const formattedPosts = await Promise.all(posts.map(formatPost));
@@ -950,6 +950,22 @@ export default class FeedController {
 
   static getStories = async (req: Request, res: Response) => {
     res.status(200).json(mockStories);
+  };
+
+  static getAllStories = async (req: Request, res: Response) => {
+    try {
+      const userId = req["user"]?.userId as number;
+      const storiesResult = await FeedService.getAllStories(userId);
+
+      res.status(200).json({
+        success: true,
+        stories: storiesResult,
+        message: "Stories fetched successfully",
+      });
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   };
 
   static createPost = async (req: Request, res: Response): Promise<any> => {
@@ -1099,14 +1115,14 @@ export default class FeedController {
           mainImageDataUri,
           {
             folder: "feed",
-          }
+          },
         );
         imageUrl = mainImageUpload.secure_url;
       }
 
       let videoUrl: string = undefined;
       if (postVideoFile) {
-        const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer)
+        const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer);
         videoUrl = videoUpload.secure_url;
         console.log(videoUpload, "videoUrl");
       }
@@ -1170,10 +1186,10 @@ export default class FeedController {
         type,
         media: [
           ...(imageUrl
-            ? [{id, type: "image", url: imageUrl }]
+            ? [{ id, type: "image", url: imageUrl }]
             : videoUrl
-            ? [{id, type: "video", url: videoUrl }]
-            : []),
+              ? [{ id, type: "video", url: videoUrl }]
+              : []),
         ],
         metadata,
       };
@@ -1225,7 +1241,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.togglePostLike(
         Number(userId),
-        Number(postId)
+        Number(postId),
       );
 
       res.status(200).json({
@@ -1262,7 +1278,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.toggleCommentLike(
         Number(userId),
-        Number(commentId)
+        Number(commentId),
       );
 
       res.status(200).json({
@@ -1284,7 +1300,7 @@ export default class FeedController {
       const { postId } = req.params;
       const post = await FeedService.getPostById(
         Number(postId),
-        Number(authorId)
+        Number(authorId),
       );
       if (!post) {
         return res
@@ -1314,7 +1330,7 @@ export default class FeedController {
       const newComment = await FeedService.addCommentByPostId(
         authorId,
         parseInt(postId),
-        content
+        content,
       );
       if (!newComment) {
         return res.status(500).json({

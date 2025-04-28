@@ -14,16 +14,7 @@ export const formatPost = async (post: any) => {
     isLiked: post.isLiked || false,
 
     // putting image in the feed posts if available for now
-    mediaUrl: post.image ? post.image : undefined,
-    media: post.image
-      ? [
-          {
-            id: `m${post.id}`,
-            type: "image",
-            url: post.image,
-          },
-        ]
-      : undefined,
+    media: post.media,
   };
 
   switch (post.type) {
@@ -159,16 +150,7 @@ export const formatPost = async (post: any) => {
       // Standard post – you might also consider grabbing the first media (if available)
       formattedPost = {
         ...formattedPost,
-        mediaUrl: post.image ? post.image : undefined,
-        media: post.image
-          ? [
-              {
-                id: `m${post.id}`,
-                type: "image",
-                url: post.image,
-              },
-            ]
-          : undefined,
+        media: post.media,
       };
     }
   }

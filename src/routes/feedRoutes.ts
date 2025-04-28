@@ -9,7 +9,7 @@ import { check } from "drizzle-orm/gel-core";
 const router = express.Router();
 
 router.get("/posts", authenticateUser, FeedController.getPosts);
-router.get("/stories", FeedController.getStories);
+router.get("/stories", FeedController.getAllStories);
 router.get("/posts/:postId", authenticateUser, FeedController.getPostById);
 router.get(
   "/posts/:postId/comments",
@@ -35,7 +35,10 @@ router.post(
 router.post(
   "/posts",
   authenticateUser,
-  upload.fields([{ name: "postImage", maxCount: 1 }, {name : "postVideo", maxCount:1}]),
+  upload.fields([
+    { name: "postImage", maxCount: 1 },
+    { name: "postVideo", maxCount: 1 },
+  ]),
   FeedController.createPost,
 );
 

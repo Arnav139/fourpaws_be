@@ -52,18 +52,20 @@ const mockCollectibles = [
 ];
 
 export default class marketPlaceController {
-  static getCollectibles = async (
+  static createCollectible = async (
     req: Request,
     res: Response
   ): Promise<any> => {
     try {
       const { name, price, description, rarity, category } = req.body;
+      
       if (!name && !price && !description && !rarity && !category) {
         return res
           .status(400)
           .json({ success: false, message: "all fields are required" });
       }
-      const collectibleImage = (req.files as any).image[0];
+ 
+      const collectibleImage = (req.files as any).collectibleImage[0];
       const collectibleImageDataUri = `data:${
         collectibleImage.mimetype
       };base64,${collectibleImage.buffer.toString("base64")}`;
@@ -103,4 +105,20 @@ export default class marketPlaceController {
         .json({ success: false, message: "Internal server error" });
     }
   };
+
+  static getCollectibles = async(req : Request, res:Response): Promise<any> => {
+    try {
+      const collectibles = await CollectibleService.getCollectibles();
+      return res.status(200).json({
+        success: true,
+        message: "Collectibles fetched successfully",
+        data: collectibles,
+      });
+    } catch (error: any) {
+      console.error("Error in getCollectibles:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
 }

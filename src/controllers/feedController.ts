@@ -89,7 +89,7 @@ export default class FeedController {
 
       const allCommentsOfPost = await FeedService.getAllCommentsByPostId(
         parseInt(postId),
-        authorId,
+        authorId
       );
 
       const postComments = allCommentsOfPost.filter((c) => c.postId === postId);
@@ -104,7 +104,7 @@ export default class FeedController {
 
       postComments.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       const startIndex = cursor ? parseInt(cursor) : 0;
@@ -142,7 +142,7 @@ export default class FeedController {
       const { posts, totalPosts } = await FeedService.getAllPosts(
         userId,
         cursor,
-        limit,
+        limit
       );
 
       const formattedPosts = await Promise.all(posts.map(formatPost));
@@ -200,6 +200,7 @@ export default class FeedController {
 
       // Destructure common properties.
       const { content = "", type = "standard", ...typeSpecificData } = req.body;
+      console.log(content, type, typeSpecificData, "req.body");
 
       // Validate common fields for a standard post.
       const postImageFile = (req.files as { postImage: Express.Multer.File[] })
@@ -224,7 +225,6 @@ export default class FeedController {
       switch (type) {
         case "poll": {
           const { pollOptions, pollDuration } = typeSpecificData;
-          console.log({ pollOptions, pollDuration });
           if (
             !pollOptions ||
             pollOptions.length < 2 ||
@@ -326,7 +326,7 @@ export default class FeedController {
           mainImageDataUri,
           {
             folder: "feed",
-          },
+          }
         );
         imageUrl = mainImageUpload.secure_url;
       }
@@ -334,13 +334,16 @@ export default class FeedController {
       let videoUrl: string = undefined;
       if (postVideoFile) {
         const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer);
+        console.log(videoUpload, "videoUpload");
         videoUrl = videoUpload.secure_url;
       }
       // Prepare metadata from type-specific fields.
       const metadata: Record<string, any> = {};
       switch (type) {
         case "poll":
-          metadata.pollOptions = JSON.parse(typeSpecificData.pollOptions);
+          metadata.pollOptions = Array.isArray(typeSpecificData.pollOptions)
+            ? typeSpecificData.pollOptions
+            : JSON.parse(typeSpecificData.pollOptions);
           metadata.pollDuration = typeSpecificData.pollDuration;
           break;
         case "link":
@@ -398,8 +401,8 @@ export default class FeedController {
           ...(imageUrl
             ? [{ id, type: "image", url: imageUrl }]
             : videoUrl
-              ? [{ id, type: "video", url: videoUrl }]
-              : []),
+            ? [{ id, type: "video", url: videoUrl }]
+            : []),
         ],
         metadata,
       };
@@ -434,7 +437,7 @@ export default class FeedController {
     try {
       const userId = req["user"]?.userId;
       const { postId } = req.params;
-
+      console.log(userId,"userId", postId,  "postId")
       if (!userId || !postId) {
         return res.status(400).json({
           success: false,
@@ -451,7 +454,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.togglePostLike(
         Number(userId),
-        Number(postId),
+        Number(postId)
       );
 
       res.status(200).json({
@@ -488,7 +491,7 @@ export default class FeedController {
 
       const isLiked = await FeedService.toggleCommentLike(
         Number(userId),
-        Number(commentId),
+        Number(commentId)
       );
 
       res.status(200).json({
@@ -510,7 +513,7 @@ export default class FeedController {
       const { postId } = req.params;
       const post = await FeedService.getPostById(
         Number(postId),
-        Number(authorId),
+        Number(authorId)
       );
       if (!post) {
         return res
@@ -540,7 +543,7 @@ export default class FeedController {
       const newComment = await FeedService.addCommentByPostId(
         authorId,
         parseInt(postId),
-        content,
+        content
       );
       if (!newComment) {
         return res.status(500).json({

@@ -7,6 +7,7 @@ export const uploadVideoToCloudinary = (fileBuffer: Buffer): Promise<any> => {
       {
         resource_type: "video", 
         folder: "videos", 
+        timeout : 120000
       },
       (error, result) => {
         if (result) resolve(result);

@@ -7,13 +7,16 @@ export default class FeedService {
     userId: number,
     postId?: number,
     isStory?: boolean,
+    all?: boolean
   ) => {
     const storyClause = isStory
       ? eq(posts.type, "story")
       : not(eq(posts.type, "story"));
 
     const whereClause = postId
-      ? and(eq(posts.id, postId), storyClause)
+      ? and(eq(posts.id, postId), all ? undefined : storyClause)
+      : all
+      ? undefined
       : storyClause;
 
     return postgreDb
@@ -55,7 +58,7 @@ export default class FeedService {
         posts.type,
         posts.createdAt,
         posts.updatedAt,
-        posts.metadata,
+        posts.metadata
       )
       .orderBy(desc(posts.createdAt));
   };
@@ -127,7 +130,7 @@ export default class FeedService {
             })),
             pollDuration: pollData.pollDuration,
             expiresAt: new Date(
-              Date.now() + pollData.pollDuration * 3600000,
+              Date.now() + pollData.pollDuration * 3600000
             ).toISOString(),
             totalVotes: 0,
             userVoted: false,
@@ -281,7 +284,7 @@ export default class FeedService {
   static getAllPosts = async (
     userId: number,
     cursor: number,
-    limit: number,
+    limit: number
   ): Promise<{ posts: any[]; totalPosts: number }> => {
     try {
       const totalPostsResult = await postgreDb
@@ -317,12 +320,17 @@ export default class FeedService {
 
   static async getPostById(postId: number, authorId: number): Promise<any> {
     try {
-      const post = await this.getPostQuery(authorId, postId).limit(1);
+      const post = await this.getPostQuery(
+        authorId,
+        postId,
+        undefined,
+        true
+      ).limit(1);
 
       if (post.length === 0) {
         return null;
       }
-
+      console.log(post);
       return post[0];
     } catch (error) {
       console.error("Error fetching post by ID:", error);
@@ -351,7 +359,7 @@ export default class FeedService {
 
   static async togglePostLike(
     userId: number,
-    postId: number,
+    postId: number
   ): Promise<boolean> {
     try {
       const existingLike = await postgreDb
@@ -364,7 +372,7 @@ export default class FeedService {
         await postgreDb
           .delete(postLikes)
           .where(
-            and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)),
+            and(eq(postLikes.userId, userId), eq(postLikes.postId, postId))
           );
         return false;
       } else {
@@ -381,7 +389,7 @@ export default class FeedService {
   }
   static async toggleCommentLike(
     authorId: number,
-    commentId: number,
+    commentId: number
   ): Promise<boolean> {
     try {
       const existingLike = await postgreDb
@@ -390,8 +398,8 @@ export default class FeedService {
         .where(
           and(
             eq(postLikes.userId, authorId),
-            eq(postLikes.commentId, commentId),
-          ),
+            eq(postLikes.commentId, commentId)
+          )
         )
         .limit(1);
 
@@ -401,8 +409,8 @@ export default class FeedService {
           .where(
             and(
               eq(postLikes.userId, authorId),
-              eq(postLikes.commentId, commentId),
-            ),
+              eq(postLikes.commentId, commentId)
+            )
           );
         return false;
       } else {
@@ -421,7 +429,7 @@ export default class FeedService {
   static async addCommentByPostId(
     authorId: number,
     postId: number,
-    content: string,
+    content: string
   ): Promise<any> {
     try {
       // Insert the new comment
@@ -445,16 +453,16 @@ export default class FeedService {
           content: comments.content,
           createdAt:
             sql<string>`to_char(${comments.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`.as(
-              "createdAt",
+              "createdAt"
             ), // Format as ISO string
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           likesCount: sql<number>`COALESCE(COUNT(${postLikes.id}), 0)`.as(
-            "likesCount",
+            "likesCount"
           ), // Ensure 0 if no likes
           isLiked:
             sql<boolean>`COALESCE(BOOL_OR(${postLikes.userId} = ${authorId}), FALSE)`.as(
-              "isLiked",
+              "isLiked"
             ), // Ensure FALSE if no likes
         })
         .from(comments)
@@ -470,7 +478,7 @@ export default class FeedService {
           comments.createdAt,
           users.name,
           users.profileImageUrl,
-          posts.id, // Include posts.id in groupBy to avoid aggregation issues
+          posts.id // Include posts.id in groupBy to avoid aggregation issues
         );
 
       return fullComment;
@@ -482,7 +490,7 @@ export default class FeedService {
 
   static async getAllCommentsByPostId(
     postId: number,
-    authorId: number,
+    authorId: number
   ): Promise<any> {
     const userId = authorId; // Use the provided authorId as userId
 
@@ -495,16 +503,16 @@ export default class FeedService {
           content: comments.content,
           createdAt:
             sql<string>`to_char(${comments.createdAt}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`.as(
-              "createdAt",
+              "createdAt"
             ), // Format as ISO string
           authorName: users.name,
           authorAvatar: users.profileImageUrl,
           likesCount: sql<number>`COALESCE(COUNT(${postLikes.id}), 0)`.as(
-            "likesCount",
+            "likesCount"
           ), // Count post likes
           isLiked: userId
             ? sql<boolean>`COALESCE(BOOL_OR(${postLikes.userId} = ${userId}), FALSE)`.as(
-                "isLiked",
+                "isLiked"
               ) // Check if user liked the post
             : sql<boolean>`FALSE`.as("isLiked"), // Default to FALSE if no userId
         })
@@ -521,7 +529,7 @@ export default class FeedService {
           comments.createdAt,
           users.name,
           users.profileImageUrl,
-          posts.id, // Include posts.id in groupBy to avoid aggregation issues
+          posts.id // Include posts.id in groupBy to avoid aggregation issues
         )
         .orderBy(desc(comments.createdAt));
 

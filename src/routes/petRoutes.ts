@@ -6,7 +6,7 @@ import { PetValidators } from "../validators/index";
 
 const router = express.Router();
 
-router.get("/animalData",validateRequest(PetValidators.validateGetAnimalData),animalController.getAnimalData);
+// router.get("/animalData",validateRequest(PetValidators.validateGetAnimalData),animalController.getAnimalData);
 
 router.get("/allPets",authenticateUser,animalController.getAllPets);
 

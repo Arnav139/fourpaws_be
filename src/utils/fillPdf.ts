@@ -9,74 +9,109 @@ import axios from "axios";
 // const __dirname = path.dirname(__filename);
 
 export async function generatePetPdf({
-  applicantName,
-  guardianName,
-  residentialAddress,
-  contact,
-  dogName,
-  dogBreed,
-  dogColor,
-  dogAge,
-  imageUrl,
-}: {
-  applicantName: string;
-  guardianName: string;
-  residentialAddress: string;
-  contact: string;
-  dogName: string;
-  dogBreed: string;
-  dogColor: string;
-  dogAge: string;
-  imageUrl: string;
-}) {
-  const pdfPath = path.join(__dirname, "../../assets/dogRegForm.pdf");
-  const existingPdfBytes = fs.readFileSync(pdfPath);
-
-  const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-  const form = pdfDoc.getForm();
-
-  const fields = form.getFields();
-  fields.forEach((field) => {
-    if (field.constructor.name === "PDFTextField") {
-      console.log("Existing text field:", field.getName());
+  applicantName = "",
+  guardianName = "",
+  residentialAddress = "",
+  contact = "",
+  dogName = "",
+  dogBreed = "",
+  dogColor = "",
+  dogAge = "",
+  imageUrl = "",
+}): Promise<Buffer> {
+  try {
+    // Validate inputs
+    if (!dogName || !dogBreed) {
+      throw new Error("Dog name and breed are required for PDF generation");
     }
-  });
 
-  // Set text fields
-  form.getTextField("applicantName").setText(applicantName);
-  form.getTextField("guardianName").setText(guardianName);
-  form.getTextField("residentialAddress").setText(residentialAddress);
-  form.getTextField("contact").setText(contact);
-  form.getTextField("dogName").setText(dogName);
-  form.getTextField("dogBreed").setText(dogBreed);
-  form.getTextField("dogColor").setText(dogColor);
-  form.getTextField("dogAge").setText(dogAge);
+    // Define PDF path with fallback
+    const pdfPath = path.join(__dirname, "../../assets/dogRegForm.pdf");
+    let existingPdfBytes: Buffer;
 
-  const imageResponse = await axios.get(imageUrl, {
-    responseType: "arraybuffer",
-  });
-  const imageBytes = Buffer.from(imageResponse.data);
+    try {
+      existingPdfBytes = fs.readFileSync(pdfPath);
+    } catch (error) {
+      console.error(`Error reading PDF template at ${pdfPath}:`, error);
+      throw new Error("Failed to load PDF template");
+    }
 
-  const image = await pdfDoc.embedJpg(imageBytes);
+    // Load PDF document
+    let pdfDoc: PDFDocument;
+    try {
+      pdfDoc = await PDFDocument.load(existingPdfBytes);
+    } catch (error) {
+      console.error("Error loading PDF document:", error);
+      throw new Error("Invalid PDF template");
+    }
 
-  const width = 80;
-  const height = 80;
+    // Get form
+    const form = pdfDoc.getForm();
+    if (!form) {
+      throw new Error("PDF form not found");
+    }
 
-  const page = pdfDoc.getPages()[0];
+    // Log available fields for debugging
+    const fields = form.getFields();
+    const fieldNames = fields.map((field) => field.getName());
+    console.debug("Available PDF fields:", fieldNames);
 
-  const pageWidth = page.getWidth();
-  const pageHeight = page.getHeight();
+    // Set text fields with fallback
+    const setTextField = (fieldName: string, value: string) => {
+      try {
+        const field = form.getTextField(fieldName);
+        field.setText(value || "");
+      } catch (error) {
+        console.warn(`Field ${fieldName} not found or error setting value:`, error);
+      }
+    };
 
-  const x = pageWidth - width - 45;
-  const y = pageHeight - height - 125;
+    setTextField("applicantName", applicantName);
+    setTextField("guardianName", guardianName);
+    setTextField("residentialAddress", residentialAddress);
+    setTextField("contact", contact);
+    setTextField("dogName", dogName);
+    setTextField("dogBreed", dogBreed);
+    setTextField("dogColor", dogColor);
+    setTextField("dogAge", dogAge);
 
-  page.drawImage(image, {
-    x: x,
-    y: y,
-    width: width,
-    height: height,
-  });
+    // Handle image
+    if (imageUrl) {
+      try {
+        const imageResponse = await axios.get(imageUrl, {
+          responseType: "arraybuffer",
+          timeout: 5000, // Add timeout to prevent hanging
+        });
+        const imageBytes = Buffer.from(imageResponse.data);
 
-  return pdfDoc.save();
+        let image;
+        try {
+          image = await pdfDoc.embedJpg(imageBytes);
+        } catch (error) {
+          console.warn("Failed to embed JPG, trying PNG:", error);
+          image = await pdfDoc.embedPng(imageBytes);
+        }
+
+        const page = pdfDoc.getPages()[0];
+        const pageWidth = page.getWidth();
+        const pageHeight = page.getHeight();
+        const width = 80;
+        const height = 80;
+        const x = pageWidth - width - 45;
+        const y = pageHeight - height - 125;
+
+        page.drawImage(image, { x, y, width, height });
+      } catch (error) {
+        console.warn("Failed to embed image in PDF:", error);
+        // Continue without image instead of failing
+      }
+    }
+
+    // Save PDF
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+  } catch (error) {
+    console.error("Error generating pet PDF:", error);
+    throw new Error(`Failed to generate PDF: ${error.message}`);
+  }
 }

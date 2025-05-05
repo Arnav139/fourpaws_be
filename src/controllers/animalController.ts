@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import petServices, { petDocuments } from "../services/pets";
 import cloudinary from "../config/cloudinary";
+import { generatePetPdf } from "../utils/fillPdf";
 
 const vaccinationRecord = [
   {
@@ -156,7 +157,7 @@ export default class animalController {
 
     // Filter vaccination records based on petId
     const filteredData = vaccinationRecord.filter(
-      (record) => record.petId === petId
+      (record) => record.petId === petId,
     );
 
     // If no records are found, return a 404 response
@@ -182,7 +183,7 @@ export default class animalController {
 
     // Filter vaccination records based on petId
     const filteredData = vaccinationSchedule.filter(
-      (record) => record.petId === petId
+      (record) => record.petId === petId,
     );
 
     // If no records are found, return a 404 response
@@ -374,6 +375,7 @@ export default class animalController {
   static getAllPets = async (req: Request, res: Response): Promise<any> => {
     try {
       const userId = req["user"]["userId"];
+
       if (!userId) {
         return res
           .status(400)
@@ -402,7 +404,6 @@ export default class animalController {
 
   static createNewPet = async (req: Request, res: Response): Promise<any> => {
     try {
-    
       const {
         registrationNumber,
         governmentRegistered,
@@ -419,6 +420,8 @@ export default class animalController {
         medications,
       } = req.body;
       const userid = req["user"]["userId"];
+      console.log(req["user"]);
+
       if (
         !governmentRegistered ||
         !name ||
@@ -441,7 +444,7 @@ export default class animalController {
         mainImageDataUri,
         {
           folder: "pets",
-        }
+        },
       );
 
       const additionalImagesFiles = (req.files as any).additionalImages || [];
@@ -515,8 +518,27 @@ export default class animalController {
         JSON.parse(personalityTraits),
         JSON.parse(allergies) || [],
         medications ? JSON.parse(medications) : [],
-        documents as unknown as  petDocuments
+        documents as unknown as petDocuments,
       );
+
+      const pdfBuffer = await generatePetPdf({
+        applicantName: "",
+        guardianName: "",
+        residentialAddress: "",
+        contact: "",
+        dogName: name,
+        dogBreed: breed,
+        dogColor: "",
+        dogAge: "",
+        imageUrl: mainImageUpload.secure_url,
+      });
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=pet-registration.pdf",
+      );
+      res.send(pdfBuffer);
 
       return res.status(201).json({
         success: true,

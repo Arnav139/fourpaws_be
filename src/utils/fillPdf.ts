@@ -2,11 +2,7 @@ import express from "express";
 import { PDFDocument } from "pdf-lib";
 import fs from "fs";
 import path from "path";
-// import { fileURLToPath } from "url";
 import axios from "axios";
-
-// const __filename = fileURLToPath((import.meta.url) as unknown as string);
-// const __dirname = path.dirname(__filename);
 
 export async function generatePetPdf({
   applicantName = "",
@@ -80,7 +76,7 @@ export async function generatePetPdf({
       try {
         const imageResponse = await axios.get(imageUrl, {
           responseType: "arraybuffer",
-          timeout: 5000, // Add timeout to prevent hanging
+          timeout: 5000,
         });
         const imageBytes = Buffer.from(imageResponse.data);
 
@@ -103,9 +99,11 @@ export async function generatePetPdf({
         page.drawImage(image, { x, y, width, height });
       } catch (error) {
         console.warn("Failed to embed image in PDF:", error);
-        // Continue without image instead of failing
       }
     }
+
+    // Flatten the form to make fields non-editable
+    form.flatten();
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();

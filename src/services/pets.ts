@@ -1,20 +1,20 @@
 import { eq } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
 import { pets } from "../models/schema";
- 
 
-export interface petDocuments{
+export interface petDocuments {
   veterinaryHealthCard: string;
   vaccinationCard: string;
   passport: string;
   imageWithOwner: string;
   veterinaryHealthCertificate: string;
   sterilizationCard: string;
-} 
+  filledForm: string;
+}
 
 export default class PetServices {
   static createNewPet = async (
-    ownerId : string,
+    ownerId: string,
     registrationNumber: string,
     governmentRegistered: boolean,
     name: string,
@@ -30,13 +30,13 @@ export default class PetServices {
     personalityTraits: string[],
     allergies: string[],
     medications: string[],
-    documents: petDocuments
+    documents: petDocuments,
   ): Promise<any> => {
     try {
       const newPet = await postgreDb
         .insert(pets)
         .values({
-          ownerId ,
+          ownerId,
           ...(registrationNumber ? { registrationNumber } : {}),
           governmentRegistered,
           name,
@@ -52,7 +52,7 @@ export default class PetServices {
           personalityTraits,
           allergies,
           medications,
-          documents
+          documents,
         })
         .returning();
 
@@ -64,7 +64,7 @@ export default class PetServices {
   };
 
   static getPetByRegistrationNumber = async (
-    registrationNumber: string
+    registrationNumber: string,
   ): Promise<any> => {
     try {
       const pet = await postgreDb
@@ -80,13 +80,24 @@ export default class PetServices {
     }
   };
 
-  static getAllPets = async (userId: number): Promise<any> => {
+  static getMyPets = async (userId: number): Promise<any> => {
     try {
       const petsList = await postgreDb
         .select()
         .from(pets)
         .where(eq(pets.ownerId, userId))
         .execute();
+      return petsList;
+    } catch (error) {
+      console.error("Error fetching all pets:", error);
+      throw new Error("Database query failed");
+    }
+  };
+
+  static getAllPets = async (): Promise<any> => {
+    try {
+      const petsList = await postgreDb.select().from(pets).execute();
+
       return petsList;
     } catch (error) {
       console.error("Error fetching all pets:", error);

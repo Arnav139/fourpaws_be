@@ -8,10 +8,19 @@ const router = express.Router();
 
 // router.get("/animalData",validateRequest(PetValidators.validateGetAnimalData),animalController.getAnimalData);
 
-router.get("/allPets",authenticateUser,animalController.getAllPets);
+router.get("/allPets", authenticateUser, animalController.getMyPets);
+router.get("/allPetsForms", authenticateUser, animalController.getAllPets);
 
-router.get("/records",validateRequest(PetValidators.validateVaccinationRecord), animalController.VaccinationRecord);
-router.get("/schedules",validateRequest(PetValidators.validateVaccinationSchedule), animalController.VaccinationSchedule);
+router.get(
+  "/records",
+  validateRequest(PetValidators.validateVaccinationRecord),
+  animalController.VaccinationRecord,
+);
+router.get(
+  "/schedules",
+  validateRequest(PetValidators.validateVaccinationSchedule),
+  animalController.VaccinationSchedule,
+);
 
 router.post(
   "/new",
@@ -23,13 +32,11 @@ router.post(
     { name: "vaccinationCard", maxCount: 1 },
     { name: "passport", maxCount: 1 },
     { name: "imageWithOwner", maxCount: 1 },
-    {name: "ownerIdProof", maxCount: 1},
+    { name: "ownerIdProof", maxCount: 1 },
     { name: "sterilizationCard", maxCount: 1 },
   ]),
   validateRequest(PetValidators.validateCreateNewPet),
-  animalController.createNewPet
+  animalController.createNewPet,
 );
-
-  
 
 export default router;

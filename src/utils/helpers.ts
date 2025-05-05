@@ -34,7 +34,7 @@ export const formatPost = async (post: any) => {
         })),
         pollDuration: pollData.pollDuration,
         expiresAt: new Date(
-          Date.now() + pollData.pollDuration * 3600000
+          Date.now() + pollData.pollDuration * 3600000,
         ).toISOString(),
         totalVotes: 0,
         userVoted: false,
@@ -164,7 +164,7 @@ export interface LinkPreviewData {
 }
 
 export const fetchLinkPreview = async (
-  linkUrl: string
+  linkUrl: string,
 ): Promise<LinkPreviewData> => {
   // Use AbortController to implement a timeout.
   const controller = new AbortController();
@@ -209,9 +209,9 @@ export const fetchLinkPreview = async (
     return { title, description, image };
   } catch (error: any) {
     if (error.name === "AbortError") {
-      console.error("Fetch request timed out:", error);
+      console.error("Fetch request timed out");
     } else {
-      console.error("Error fetching link preview:", error);
+      console.error("Error fetching link preview");
     }
     return {
       title: "Unavailable",

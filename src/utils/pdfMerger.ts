@@ -1,6 +1,5 @@
 import fs from "fs";
 import { PDFDocument } from "pdf-lib";
-import PDFMerger from "pdf-merger-js";
 import path from "path";
 
 // Utility to download file from a URL
@@ -13,7 +12,7 @@ async function downloadFile(url: string) {
 }
 
 // Convert image buffer to a single-page PDF buffer
-async function imageToPDF(imageBuffer) {
+async function imageToPDF(imageBuffer: Buffer) {
   const pdfDoc = await PDFDocument.create();
   const image =
     (await pdfDoc.embedJpg(imageBuffer).catch(() => null)) ||
@@ -30,26 +29,57 @@ async function imageToPDF(imageBuffer) {
   return await pdfDoc.save();
 }
 
-export async function mergePDFs(files: string[]) {
-  const merger = new PDFMerger();
+async function fetchPdfBuffer(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
 
-  for (const url of files) {
+// export async function imageToPDF(imageBuffer: Buffer): Promise<Buffer> {
+//   const pdfDoc = await PDFDocument.create();
+
+//   let image;
+//   try {
+//     image = await pdfDoc.embedJpg(imageBuffer);
+//   } catch {
+//     try {
+//       image = await pdfDoc.embedPng(imageBuffer);
+//     } catch (err) {
+//       throw new Error("Failed to embed image: Unsupported format or corrupted data.");
+//     }
+//   }
+
+//   const page = pdfDoc.addPage([image.width, image.height]);
+//   page.drawImage(image, {
+//     x: 0,
+//     y: 0,
+//     width: image.width,
+//     height: image.height,
+//   });
+
+//   const pdfBytes = await pdfDoc.save();
+//   return Buffer.from(pdfBytes);
+// }
+
+export async function mergePDFs(pdfUrls: string[]): Promise<Buffer> {
+  const mergedPdf = await PDFDocument.create();
+
+  for (const url of pdfUrls) {
     const { buffer, ext } = await downloadFile(url);
 
-    if (ext === ".pdf") {
-      // Save buffer temporarily
-      const tempPath = `temp_${Date.now()}.pdf`;
-      fs.writeFileSync(tempPath, buffer);
-      await merger.add(tempPath);
-      fs.unlinkSync(tempPath);
-    } else if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-      const pdfBuffer = await imageToPDF(buffer);
-      const tempPath = `temp_image_${Date.now()}.pdf`;
-      fs.writeFileSync(tempPath, pdfBuffer);
-      await merger.add(tempPath);
-      fs.unlinkSync(tempPath);
+    let pdfBuffer: Buffer;
+    if (ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
+      const pdfBytes = await imageToPDF(buffer); // Convert image to PDF
+      pdfBuffer = Buffer.from(pdfBytes);
+    } else {
+      pdfBuffer = buffer;
     }
+
+    const pdf = await PDFDocument.load(pdfBuffer); // Always load a valid PDF buffer
+    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+    copiedPages.forEach((page) => mergedPdf.addPage(page));
   }
-  const mergedBuffer = await merger.saveAsBuffer();
-  return Buffer.from(mergedBuffer);
+
+  return Buffer.from(await mergedPdf.save());
 }
+

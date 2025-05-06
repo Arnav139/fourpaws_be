@@ -169,12 +169,14 @@ export default class animalController {
 
       // Upload main image
       const imageFile = (req.files as any).image[0];
-      const mainImageDataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString("base64")}`;
+      const mainImageDataUri = `data:${
+        imageFile.mimetype
+      };base64,${imageFile.buffer.toString("base64")}`;
       const mainImageUpload = await cloudinary.uploader.upload(
         mainImageDataUri,
         {
           folder: "pets",
-        },
+        }
       );
 
       // Upload additional images
@@ -182,7 +184,9 @@ export default class animalController {
       const additionalImages: string[] = [];
 
       for (const file of additionalImagesFiles) {
-        const fileDataUri = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+        const fileDataUri = `data:${
+          file.mimetype
+        };base64,${file.buffer.toString("base64")}`;
         const upload = await cloudinary.uploader.upload(fileDataUri, {
           folder: "pets/additional",
         });
@@ -230,6 +234,7 @@ export default class animalController {
       }
 
       // Generate PDF & upload to Cloudinary
+      // Generate PDF & upload to Cloudinary
       const pdfBuffer = await generatePetPdf({
         applicantName: "",
         guardianName: "",
@@ -239,7 +244,6 @@ export default class animalController {
         dogBreed: breed,
         dogColor: "",
         dogAge: "",
-        imageUrl: mainImageUpload.secure_url,
       });
 
       const base64Pdf = pdfBuffer.toString("base64");
@@ -251,13 +255,14 @@ export default class animalController {
         format: "pdf",
       });
 
-      documents["filledForm"] = pdfUploadResult.secure_url;
-
+      
       const mergedPdfBuffer = await mergePDFs([
         pdfUploadResult.secure_url,
-        ...Object.keys(documents),
+        ...Object.values(documents),
       ]);
-
+      
+      documents["filledForm"] = pdfUploadResult.secure_url;
+      // Fix: Properly encode mergedPdfBuffer to base64
       const mergedBase64Pdf = mergedPdfBuffer.toString("base64");
       const mergedDataUri = `data:application/pdf;base64,${mergedBase64Pdf}`;
 
@@ -269,7 +274,6 @@ export default class animalController {
 
       const mergedPdf = mergedPdfResult.secure_url;
       documents["mergedPdf"] = mergedPdf;
-
       // Create new pet entry in DB
       const newPet = await petServices.createNewPet(
         userid,
@@ -288,7 +292,7 @@ export default class animalController {
         JSON.parse(personalityTraits),
         JSON.parse(allergies) || [],
         medications ? JSON.parse(medications) : [],
-        documents as unknown as petDocuments,
+        documents as unknown as petDocuments
       );
 
       // Final response (single JSON response, no duplicate sends)

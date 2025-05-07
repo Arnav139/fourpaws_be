@@ -9,7 +9,10 @@ export default class authController {
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
       const { otp } = req.body;
-      let userExists = await Mailer.verifyOtp(req["user"] as any, otp as string);
+      let userExists = await Mailer.verifyOtp(
+        req["user"] as any,
+        otp as string,
+      );
       if (!userExists) {
         userExists = await UserService.insertUser(
           req["user"]["email"] as string,
@@ -39,6 +42,8 @@ export default class authController {
 
     try {
       const otp = await Mailer.sendEmail(email);
+      console.log({ otp });
+
       let token = otpToken(email, otp);
       return res
         .status(200)

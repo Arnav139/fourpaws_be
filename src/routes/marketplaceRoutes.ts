@@ -9,9 +9,11 @@ router.post(
   "/items",
   authenticateUser,
   upload.fields([{ name: "collectibleImage", maxCount: 1 }]),
-  marketPlaceController.createCollectible
+  marketPlaceController.createCollectible,
 );
 
 router.get("/items", authenticateUser, marketPlaceController.getCollectibles);
+
+router.get("/data", authenticateUser, marketPlaceController.getMarketplaceData);
 
 export default router;

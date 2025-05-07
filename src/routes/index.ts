@@ -1,9 +1,9 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import user from "./userRoutes";
 import pets from "./petRoutes";
-import marketPlace from "./marketPlaceroutes";
+import marketplace from "./marketplaceRoutes";
 import feed from "./feedRoutes";
-import auth from "./authRoutes"
+import auth from "./authRoutes";
 
 const router = express.Router();
 
@@ -18,16 +18,16 @@ const defaultRoutes = [
   },
   {
     path: "/marketplace",
-    route: marketPlace,
+    route: marketplace,
   },
   {
-    path : "/feed",
-    route : feed
+    path: "/feed",
+    route: feed,
   },
   {
-    path : "/auth",
-    route : auth
-  }
+    path: "/auth",
+    route: auth,
+  },
 ];
 
 defaultRoutes.forEach((route) => {

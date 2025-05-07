@@ -51,20 +51,73 @@ const mockCollectibles = [
   },
 ];
 
+const COLLECTIBLES = [
+  {
+    id: 1,
+    name: "Luna",
+    collected: true,
+    totalCount: 90,
+    ownedCount: 12,
+    color: "#FF6B6B",
+  },
+  {
+    id: 2,
+    name: "Max",
+    collected: true,
+    rarity: "Rare",
+    totalCount: 50,
+    ownedCount: 4,
+    color: "#FFD166",
+  },
+  {
+    id: 3,
+    name: "Bella",
+    collected: false,
+    rarity: "Epic",
+    totalCount: 25,
+    ownedCount: 0,
+    color: "#4ECDC4",
+  },
+];
+
+const ITEMS = [
+  { id: 1, name: "Dog Collar", price: 500 },
+  { id: 2, name: "Chew Toy", price: 350 },
+  { id: 3, name: "Dog Bed", price: 1200 },
+  { id: 4, name: "Leash", price: 450 },
+  { id: 5, name: "Dog Food", price: 800 },
+  { id: 6, name: "Brush", price: 200 },
+];
+
+const GIFTS = [
+  { id: 1, name: "Bone", price: 200, color: "#FF9A8B" },
+  { id: 2, name: "Treat Box", price: 450, color: "#FFD866" },
+  { id: 3, name: "Birthday Hat", price: 300, color: "#90E0EF" },
+  { id: 4, name: "Ribbon", price: 150, color: "#B5EAD7" },
+];
+
+const CATEGORIES = [
+  { id: 1, name: "Food", icon: "fast-food-outline" },
+  { id: 2, name: "Toys", icon: "football-outline" },
+  { id: 3, name: "Treats", icon: "ice-cream-outline" },
+  { id: 4, name: "Grooming", icon: "cut-outline" },
+  { id: 5, name: "Health", icon: "medkit-outline" },
+];
+
 export default class marketPlaceController {
   static createCollectible = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const { name, price, description, rarity, category } = req.body;
-      
+
       if (!name && !price && !description && !rarity && !category) {
         return res
           .status(400)
           .json({ success: false, message: "all fields are required" });
       }
- 
+
       const collectibleImage = (req.files as any).collectibleImage[0];
       const collectibleImageDataUri = `data:${
         collectibleImage.mimetype
@@ -73,7 +126,7 @@ export default class marketPlaceController {
         collectibleImageDataUri,
         {
           folder: "collectibles",
-        }
+        },
       );
 
       const payload = {
@@ -84,20 +137,17 @@ export default class marketPlaceController {
         category,
         image: collectibleImageUpload.secure_url,
       };
-      const newCollectible = await CollectibleService.createCollectible(
-        payload
-      );
+      const newCollectible =
+        await CollectibleService.createCollectible(payload);
       const data = {
         ...newCollectible,
         isPurchased: false,
       };
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Collectible created successfully",
-          data,
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Collectible created successfully",
+        data,
+      });
     } catch (error: any) {
       console.error("Error in getCollectibles:", error);
       return res
@@ -106,7 +156,10 @@ export default class marketPlaceController {
     }
   };
 
-  static getCollectibles = async(req : Request, res:Response): Promise<any> => {
+  static getCollectibles = async (
+    req: Request,
+    res: Response,
+  ): Promise<any> => {
     try {
       const collectibles = await CollectibleService.getCollectibles();
       return res.status(200).json({
@@ -120,5 +173,21 @@ export default class marketPlaceController {
         .status(500)
         .json({ success: false, message: "Internal server error" });
     }
-  }
+  };
+
+  static getMarketplaceData = async (
+    req: Request,
+    res: Response,
+  ): Promise<any> => {
+    return res.status(200).json({
+      success: true,
+      message: "Collectibles fetched successfully",
+      data: {
+        collectibles: COLLECTIBLES,
+        items: ITEMS,
+        gifts: GIFTS,
+        categories: CATEGORIES,
+      },
+    });
+  };
 }

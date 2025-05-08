@@ -9,5 +9,6 @@ const router = express.Router();
 router.post("/login",validateRequest(AuthValidators.validateLoginUser),authController.loginUser)
 router.post("/verify-otp",authenticateUser,validateRequest(AuthValidators.validateVerifyOtp), authController.verifyOtp)
 router.post("/update-wallet",authenticateUser,validateRequest(AuthValidators.validateUpdateWallet), authController.updateWallet)
+router.post("/google-login", authController.googleLogin)
 
 export default router;

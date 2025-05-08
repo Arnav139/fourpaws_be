@@ -1,5 +1,5 @@
 export const formatPost = async (post: any) => {
-  // console.log(post);
+
 
   let formattedPost: any = {
     id: post.id.toString(),

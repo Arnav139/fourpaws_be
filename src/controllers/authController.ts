@@ -3,9 +3,10 @@ import redisClient from "../config/redis";
 import { UserService } from "../services";
 import Mailer from "../utils/nodeMailer";
 import { generateAuthTokens } from "../config/token";
-import { otpToken } from "../config/common";
-
+import { otpToken } from "../config/common"
+import { OAuth2Client } from "google-auth-library";
 export default class authController {
+
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
       const { otp } = req.body;
@@ -19,7 +20,7 @@ export default class authController {
         );
       }
       const accessToken = generateAuthTokens(userExists.id, userExists.email);
-      const user = { ...userExists, accessToken };
+      const user = { ...userExists,profileImage : userExists.profileImageUrl, accessToken };
       return res
         .status(200)
         .send({ success: true, message: "user logged  in", user });
@@ -42,7 +43,7 @@ export default class authController {
 
     try {
       const otp = await Mailer.sendEmail(email);
-      console.log({ otp });
+ 
 
       let token = otpToken(email, otp);
       return res
@@ -56,6 +57,52 @@ export default class authController {
       });
     }
   };
+
+  
+  static googleLogin = async (req: Request, res: Response): Promise<any> => {
+    try {
+      // Extract idToken from request body
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ error: "idToken is required" });
+      }
+      const client = new OAuth2Client;
+
+      // Verify the idToken
+      const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: "755316245934-mmstkch2le7tf48uggljo9cj7m95aj75.apps.googleusercontent.com", // Replace with your Google Client ID
+      });
+
+      // Get the payload from the verified token
+      const payload = ticket.getPayload();
+       console.log(payload, "payload")
+      if (!payload) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      // Extract user details from payload
+      const { sub: googleId, email, name, picture } = payload;
+
+
+     let userExists =  await UserService.getUser(email);
+
+     if (!userExists) {
+        userExists = await UserService.insertUser(
+         email, name, picture
+        );
+      }
+      const accessToken = generateAuthTokens(userExists.id, userExists.email);
+      const user = { ...userExists,profileImage: userExists.profileImageUrl, accessToken };
+      return res
+        .status(200)
+        .send({ success: true, message: "user logged  in", user});
+    } catch (error) {
+      console.error("Error in verifyOtp:", error);
+      return res.status(500).send({ success: false, error: "invalid otp" });
+    }
+  };  
 
   // POST /auth/update-wallet
   static updateWallet = async (req: Request, res: any) => {
@@ -96,7 +143,9 @@ export default class authController {
       return res.status(200).json({
         success: true,
         message: "Wallet address updated successfully",
-        user: updatedUser,
+     user : {
+      ...updatedUser, profileImage : updatedUser.profileImageUrl
+     },
       });
     } catch (error) {
       console.error("Error in updateWallet:", error);

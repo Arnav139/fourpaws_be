@@ -48,6 +48,7 @@
     "pdf-lib": "^1.17.1",
     "pdf-merger-js": "^5.1.2",
     "pg": "^8.11.3",
+    "sharp": "^0.34.1",
     "streamifier": "^0.1.1",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",

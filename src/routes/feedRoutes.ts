@@ -37,7 +37,7 @@ router.post(
   authenticateUser,
   upload.fields([
     { name: "postImage", maxCount: 1 },
-    { name: "postVideo", maxCount: 1 }
+    { name: "postVideo", maxCount: 1 },
   ]),
   FeedController.createPost,
 );

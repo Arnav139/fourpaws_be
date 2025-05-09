@@ -5,6 +5,7 @@ import { number } from "zod";
 import { numeric } from "drizzle-orm/pg-core";
 import { formatPost } from "../utils/helpers";
 import { uploadVideoToCloudinary } from "../utils/uploadVideotoCloudinary";
+import { compressImageToUnder2MB } from "../utils/compressImage";
 
 interface Post {
   id: string;
@@ -318,17 +319,31 @@ export default class FeedController {
       // Process file upload if present.
       let imageUrl: string = undefined;
       if (postImageFile) {
-        // Convert image buffer to data URI.
-        const mainImageDataUri = `data:${
-          postImageFile.mimetype
-        };base64,${postImageFile.buffer.toString("base64")}`;
-        const mainImageUpload = await cloudinary.uploader.upload(
-          mainImageDataUri,
-          {
-            folder: "feed",
-          }
-        );
-        imageUrl = mainImageUpload.secure_url;
+        try {
+          const { data: compressedImageStream, format } = await compressImageToUnder2MB(
+            postImageFile.buffer,
+            postImageFile.mimetype
+          );
+      
+          const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                resource_type: "image",
+                folder: "feed",
+                format,
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              }
+            );
+            compressedImageStream.pipe(uploadStream);
+          });
+      
+          imageUrl = (uploadResult as any).secure_url;
+        } catch (err) {
+          console.error("Image compression/upload failed:", err);
+        }
       }
 
       let videoUrl: string = undefined;

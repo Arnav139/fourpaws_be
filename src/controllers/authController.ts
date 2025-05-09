@@ -3,24 +3,27 @@ import redisClient from "../config/redis";
 import { UserService } from "../services";
 import Mailer from "../utils/nodeMailer";
 import { generateAuthTokens } from "../config/token";
-import { otpToken } from "../config/common"
+import { otpToken } from "../config/common";
 import { OAuth2Client } from "google-auth-library";
 export default class authController {
-
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
       const { otp } = req.body;
       let userExists = await Mailer.verifyOtp(
         req["user"] as any,
-        otp as string,
+        otp as string
       );
       if (!userExists) {
         userExists = await UserService.insertUser(
-          req["user"]["email"] as string,
+          req["user"]["email"] as string
         );
       }
       const accessToken = generateAuthTokens(userExists.id, userExists.email);
-      const user = { ...userExists,profileImage : userExists.profileImageUrl, accessToken };
+      const user = {
+        ...userExists,
+        profileImage: userExists.profileImageUrl,
+        accessToken,
+      };
       return res
         .status(200)
         .send({ success: true, message: "user logged  in", user });
@@ -43,7 +46,6 @@ export default class authController {
 
     try {
       const otp = await Mailer.sendEmail(email);
- 
 
       let token = otpToken(email, otp);
       return res
@@ -58,7 +60,6 @@ export default class authController {
     }
   };
 
-  
   static googleLogin = async (req: Request, res: Response): Promise<any> => {
     try {
       // Extract idToken from request body
@@ -67,17 +68,18 @@ export default class authController {
       if (!idToken) {
         return res.status(400).json({ error: "idToken is required" });
       }
-      const client = new OAuth2Client;
+      const client = new OAuth2Client();
 
       // Verify the idToken
       const ticket = await client.verifyIdToken({
         idToken: idToken,
-        audience: "755316245934-mmstkch2le7tf48uggljo9cj7m95aj75.apps.googleusercontent.com", // Replace with your Google Client ID
+        audience:
+          "755316245934-mmstkch2le7tf48uggljo9cj7m95aj75.apps.googleusercontent.com", // Replace with your Google Client ID
       });
 
       // Get the payload from the verified token
       const payload = ticket.getPayload();
-       console.log(payload, "payload")
+      console.log(payload, "payload");
       if (!payload) {
         return res.status(401).json({ error: "Invalid token" });
       }
@@ -85,24 +87,25 @@ export default class authController {
       // Extract user details from payload
       const { sub: googleId, email, name, picture } = payload;
 
+      let userExists = await UserService.getUser(email);
 
-     let userExists =  await UserService.getUser(email);
-
-     if (!userExists) {
-        userExists = await UserService.insertUser(
-         email, name, picture
-        );
+      if (!userExists) {
+        userExists = await UserService.insertUser(email, name, picture);
       }
       const accessToken = generateAuthTokens(userExists.id, userExists.email);
-      const user = { ...userExists,profileImage: userExists.profileImageUrl, accessToken };
+      const user = {
+        ...userExists,
+        profileImage: userExists.profileImageUrl,
+        accessToken,
+      };
       return res
         .status(200)
-        .send({ success: true, message: "user logged  in", user});
+        .send({ success: true, message: "user logged  in", user });
     } catch (error) {
       console.error("Error in verifyOtp:", error);
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
-  };  
+  };
 
   // POST /auth/update-wallet
   static updateWallet = async (req: Request, res: any) => {
@@ -126,8 +129,9 @@ export default class authController {
       }
 
       // Check if wallet address is already set
-      const currentWalletAddress =
-        await UserService.getWalletAddressByEmail(email);
+      const currentWalletAddress = await UserService.getWalletAddressByEmail(
+        email
+      );
       if (currentWalletAddress) {
         return res.status(400).json({
           success: false,
@@ -138,14 +142,15 @@ export default class authController {
       // Update the wallet address
       const updatedUser = await UserService.updateWalletAddress(
         email,
-        walletAddress,
+        walletAddress
       );
       return res.status(200).json({
         success: true,
         message: "Wallet address updated successfully",
-     user : {
-      ...updatedUser, profileImage : updatedUser.profileImageUrl
-     },
+        user: {
+          ...updatedUser,
+          profileImage: updatedUser.profileImageUrl,
+        },
       });
     } catch (error) {
       console.error("Error in updateWallet:", error);

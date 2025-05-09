@@ -14,6 +14,8 @@ export async function generatePetPdf({
   dogColor = "",
   dogAge = "",
   imageUrl = "",
+  vaccinationCard = "",
+  sterilizaed = "",
 }): Promise<Buffer> {
   try {
     // Validate inputs
@@ -70,6 +72,12 @@ export async function generatePetPdf({
     setTextField("dogBreed", dogBreed);
     setTextField("dogColor", dogColor);
     setTextField("dogAge", dogAge);
+    setTextField("vaccinationCard", vaccinationCard);
+    setTextField("sterilized", sterilizaed);
+    setTextField("applicantNameAffidavit", applicantName);
+    setTextField("s/w-o", guardianName);
+    setTextField("addressAffidavit", residentialAddress);
+
 
     // Handle image
     if (imageUrl) {

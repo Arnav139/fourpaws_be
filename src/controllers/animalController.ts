@@ -3,6 +3,7 @@ import petServices, { petDocuments } from "../services/pets";
 import cloudinary from "../config/cloudinary";
 import { generatePetPdf } from "../utils/fillPdf";
 import { mergePDFs } from "../utils/pdfMerger";
+import { UserService } from "../services";
 
 export default class animalController {
   static VaccinationRecord = (req: Request, res) => {
@@ -152,6 +153,8 @@ export default class animalController {
       } = req.body;
 
       const userid = req["user"]["userId"];
+      const email = req["user"]["email"];
+
 
       if (
         !governmentRegistered ||
@@ -201,6 +204,9 @@ export default class animalController {
         weight: Number(req.body.weight) || 0,
         size: req.body.size || "small",
         age: Number(req.body.age) || 0,
+        applicantName:req.body.applicantName,
+        guardianName: req.body.guardianName || "",
+        residentialAddress: req.body.residentialAddress || "",
       };
 
       // Upload pet documents
@@ -236,14 +242,18 @@ export default class animalController {
       // Generate PDF & upload to Cloudinary
       // Generate PDF & upload to Cloudinary
       const pdfBuffer = await generatePetPdf({
-        applicantName: "",
-        guardianName: "",
-        residentialAddress: "",
-        contact: "",
+        applicantName: fullMetaData.applicantName,
+        guardianName: fullMetaData.guardianName,
+        residentialAddress:fullMetaData.residentialAddress,
+        contact: email,
         dogName: name,
         dogBreed: breed,
-        dogColor: "",
-        dogAge: "",
+        dogColor: fullMetaData.color,
+        dogAge: fullMetaData.age.toString(),
+        imageUrl: mainImageUpload.secure_url,
+        vaccinationCard: "Yes",
+        sterilizaed: sterilized ? "Yes" : "No",
+
       });
 
       const base64Pdf = pdfBuffer.toString("base64");
@@ -267,7 +277,7 @@ export default class animalController {
       const mergedDataUri = `data:application/pdf;base64,${mergedBase64Pdf}`;
 
       const mergedPdfResult = await cloudinary.uploader.upload(mergedDataUri, {
-        resource_type: "raw",
+        resource_type: "auto",
         folder: "pets/pdfs",
         format: "pdf",
       });

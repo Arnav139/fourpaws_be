@@ -69,6 +69,7 @@ export const pets: any = pgTable(
       .default(false)
       .notNull(),
     name: varchar("name", { length: 100 }).notNull(),
+    guardianName: varchar("guardian_name", { length: 100 }),
     species: varchar("species").notNull(),
     breed: varchar("breed").notNull(),
     gender: varchar("gender").default("unknown"),

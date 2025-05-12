@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import petServices, { petDocuments } from "../services/pets";
 import cloudinary from "../config/cloudinary";
 import { generatePetPdf } from "../utils/fillPdf";
-import { mergePDFs } from "../utils/pdfMerger";
+import { mergePDFsWithBuffers, PdfSource } from "../utils/pdfMerger";
+import {
+  uploadBufferToCloudinary,
+  uploadToCloudinary,
+} from "../utils/uploader";
 
 export default class animalController {
   static VaccinationRecord = (req: Request, res) => {
@@ -129,81 +133,97 @@ export default class animalController {
     }
   };
 
-  // static getAnimalData = async (req: Request, res: Response) => {
-  //   res.json(animalData);
-  // };
-
   static createNewPet = async (req: Request, res: Response): Promise<any> => {
     try {
       const {
         registrationNumber,
-        governmentRegistered,
+        governmentRegistered = false,
         name,
         species,
         breed,
-        gender,
+        gender = "unknown",
         sterilized,
-        bio,
+        bio = null,
         dateOfBirth,
         metaData,
         personalityTraits,
-        allergies,
-        medications,
+        allergies = "[]",
+        medications = "[]",
+        color = "unknown",
+        weight = 0,
+        size = "small",
+        age = 0,
+        applicantName = "",
+        guardianName = "",
+        residentialAddress = "",
+        contact = "",
       } = req.body;
 
-      const userid = req["user"]["userId"];
-
-      if (
-        !governmentRegistered ||
-        !name ||
-        !species ||
-        !breed ||
-        !metaData ||
-        !req.files ||
-        !("image" in req.files)
-      ) {
+      const userid = req["user"]?.["userId"];
+      if (!userid) {
         return res
-          .status(400)
-          .json({ success: false, error: "Required fields missing" });
+          .status(401)
+          .json({ success: false, error: "User not authenticated" });
       }
 
-      // Upload main image
-      const imageFile = (req.files as any).image[0];
-      const mainImageDataUri = `data:${
-        imageFile.mimetype
-      };base64,${imageFile.buffer.toString("base64")}`;
-      const mainImageUpload = await cloudinary.uploader.upload(
-        mainImageDataUri,
-        {
-          folder: "pets",
-        }
-      );
-
-      // Upload additional images
-      const additionalImagesFiles = (req.files as any).additionalImages || [];
-      const additionalImages: string[] = [];
-
-      for (const file of additionalImagesFiles) {
-        const fileDataUri = `data:${
-          file.mimetype
-        };base64,${file.buffer.toString("base64")}`;
-        const upload = await cloudinary.uploader.upload(fileDataUri, {
-          folder: "pets/additional",
-        });
-        additionalImages.push(upload.secure_url);
-      }
-
-      // Extract and merge metaData
-      const parsedMetaData = JSON.parse(metaData);
-      const fullMetaData = {
-        ...parsedMetaData,
-        color: req.body.color || "unknown",
-        weight: Number(req.body.weight) || 0,
-        size: req.body.size || "small",
-        age: Number(req.body.age) || 0,
+      const files = req.files as unknown as {
+        [fieldname: string]: Express.Multer.File | Express.Multer.File[];
       };
 
-      // Upload pet documents
+      // --- 1. Validation ---
+      if (!name || !species || !breed || !metaData || !files?.image) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "Required fields missing (name, species, breed, metaData, image are mandatory)",
+        });
+      }
+
+      // --- 2. Prepare Concurrent Operations ---
+      const promises: Promise<any>[] = [];
+      const promiseMap = {
+        mainImage: -1,
+        additionalImages: [] as number[],
+        documents: [] as {
+          field: string;
+          index: number;
+          mimetype: string; // Store mimetype for merging logic
+          isPdf: boolean;
+          buffer?: Buffer;
+        }[],
+        generatedPdf: -1,
+      };
+
+      // --- 2a. Main Image Upload ---
+      const mainImageFile = Array.isArray(files.image)
+        ? files.image[0]
+        : files.image;
+      if (mainImageFile) {
+        promiseMap.mainImage =
+          promises.push(uploadToCloudinary(mainImageFile, "pets", "image")) - 1;
+      } else {
+        return res
+          .status(400)
+          .json({ success: false, error: "Main image ('image') is required." });
+      }
+
+      // --- 2b. Additional Images Upload ---
+      const additionalImagesFiles = files.additionalImages
+        ? Array.isArray(files.additionalImages)
+          ? files.additionalImages
+          : [files.additionalImages]
+        : [];
+      additionalImagesFiles.forEach((file) => {
+        if (file) {
+          promiseMap.additionalImages.push(
+            promises.push(
+              uploadToCloudinary(file, "pets/additional", "image"),
+            ) - 1,
+          );
+        }
+      });
+
+      // --- 2c. Document Uploads ---
       const documentFields = [
         "veterinaryHealthCard",
         "vaccinationCard",
@@ -212,101 +232,285 @@ export default class animalController {
         "ownerIdProof",
         "sterilizationCard",
       ];
+      // Store document info including mimetype for merging later
+      const uploadedDocumentInfo: {
+        field: string;
+        file: Express.Multer.File;
+      }[] = [];
 
-      const documents: Record<string, string> = {};
-
-      for (const field of documentFields) {
-        const file = (req.files as any)?.[field]?.[0];
+      documentFields.forEach((field) => {
+        const fileOrFiles = files[field];
+        const file = fileOrFiles
+          ? Array.isArray(fileOrFiles)
+            ? fileOrFiles[0]
+            : fileOrFiles
+          : undefined;
         if (file) {
+          uploadedDocumentInfo.push({ field, file }); // Store file info temporarily
           const isPDF = file.mimetype === "application/pdf";
-          const fileDataUri = isPDF
-            ? `data:application/pdf;base64,${file.buffer.toString("base64")}`
-            : `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+          const resourceType = isPDF ? "raw" : "image"; // Or 'auto' if Cloudinary handles it well
+          const index =
+            promises.push(
+              uploadToCloudinary(file, "pets/documents", resourceType),
+            ) - 1;
 
-          const upload = await cloudinary.uploader.upload(fileDataUri, {
-            folder: "pets/documents",
-            resource_type: isPDF ? "raw" : "image",
-            format: isPDF ? "pdf" : undefined,
+          // Store details needed after Promise.all
+          promiseMap.documents.push({
+            field,
+            index,
+            mimetype: file.mimetype, // Store original mimetype
+            isPdf: isPDF,
+            buffer: file.buffer, // Keep buffer temporarily
           });
+        }
+      });
 
-          documents[field] = upload.secure_url;
+      // --- 2d. PDF Generation ---
+      promiseMap.generatedPdf =
+        promises.push(
+          generatePetPdf({
+            applicantName,
+            guardianName,
+            residentialAddress,
+            contact,
+            dogName: name,
+            dogBreed: breed,
+            dogColor: color,
+            dogAge: String(age),
+          }),
+        ) - 1;
+
+      // --- 3. Execute All Concurrent Operations ---
+      if (promises.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, error: "No files or data to process." });
+      }
+      const results = await Promise.all(promises);
+
+      // --- 4. Process Results and Prepare Data ---
+      const documentsResult: Record<string, string> = {};
+      let mainImageUrl: string | null = null;
+      let generatedPdfBuffer: Buffer | null = null;
+      const additionalImageUrls: string[] = [];
+      const sourcesForMerging: PdfSource[] = []; // <--- Initialize for buffer-based merging
+
+      // --- 4a. Main Image ---
+      if (promiseMap.mainImage !== -1) {
+        const result = results[promiseMap.mainImage];
+        if (result?.secure_url) {
+          mainImageUrl = result.secure_url;
+        } else {
+          console.error("Main image upload failed. Result:", result);
+          return res
+            .status(500)
+            .json({ success: false, error: "Failed to upload main image." });
         }
       }
 
-      // Generate PDF & upload to Cloudinary
-      // Generate PDF & upload to Cloudinary
-      const pdfBuffer = await generatePetPdf({
-        applicantName: "",
-        guardianName: "",
-        residentialAddress: "",
-        contact: "",
-        dogName: name,
-        dogBreed: breed,
-        dogColor: "",
-        dogAge: "",
+      // --- 4b. Additional Images ---
+      promiseMap.additionalImages.forEach((index) => {
+        const result = results[index];
+        if (result?.secure_url) {
+          additionalImageUrls.push(result.secure_url);
+        } else {
+          console.warn("An additional image upload failed. Result:", result);
+        }
       });
 
-      const base64Pdf = pdfBuffer.toString("base64");
-      const dataUri = `data:application/pdf;base64,${base64Pdf}`;
-
-      const pdfUploadResult = await cloudinary.uploader.upload(dataUri, {
-        resource_type: "raw",
-        folder: "pets/pdfs",
-        format: "pdf",
+      // --- 4c. Documents ---
+      promiseMap.documents.forEach((docInfo) => {
+        const result = results[docInfo.index];
+        if (result?.secure_url) {
+          documentsResult[docInfo.field] = result.secure_url;
+          // Add buffer and mimetype to sources list if buffer exists
+          if (docInfo.buffer) {
+            // Only add PDFs and supported images for merging
+            if (
+              docInfo.mimetype === "application/pdf" ||
+              docInfo.mimetype === "image/jpeg" ||
+              docInfo.mimetype === "image/png"
+            ) {
+              sourcesForMerging.push({
+                buffer: docInfo.buffer,
+                mimetype: docInfo.mimetype, // Pass correct mimetype
+              });
+            } else {
+              console.log(
+                `Document field '${docInfo.field}' has buffer but unsupported mimetype '${docInfo.mimetype}' for merging.`,
+              );
+            }
+          } else {
+            console.warn(
+              `Buffer missing for document field '${docInfo.field}' after upload, cannot use for merging.`,
+            );
+          }
+        } else {
+          console.warn(
+            `Upload failed for document: ${docInfo.field}. Result:`,
+            result,
+          );
+        }
       });
 
-      
-      const mergedPdfBuffer = await mergePDFs([
-        pdfUploadResult.secure_url,
-        ...Object.values(documents),
-      ]);
-      
-      documents["filledForm"] = pdfUploadResult.secure_url;
-      // Fix: Properly encode mergedPdfBuffer to base64
-      const mergedBase64Pdf = mergedPdfBuffer.toString("base64");
-      const mergedDataUri = `data:application/pdf;base64,${mergedBase64Pdf}`;
+      // --- 4d. Generated PDF ---
+      if (promiseMap.generatedPdf !== -1) {
+        const result = results[promiseMap.generatedPdf];
+        if (result instanceof Buffer) {
+          generatedPdfBuffer = result;
+        } else {
+          console.error(
+            "PDF generation failed or did not return a Buffer. Result:",
+            result,
+          );
+          return res.status(500).json({
+            success: false,
+            error: "Failed to generate pet information PDF.",
+          });
+        }
+      }
 
-      const mergedPdfResult = await cloudinary.uploader.upload(mergedDataUri, {
-        resource_type: "raw",
-        folder: "pets/pdfs",
-        format: "pdf",
-      });
+      // --- 5. Handle Generated PDF Upload, Merging, and Merged PDF Upload ---
+      let generatedPdfUrl: string | null = null;
+      let mergedPdfUrl: string | null = null;
 
-      const mergedPdf = mergedPdfResult.secure_url;
-      documents["mergedPdf"] = mergedPdf;
-      // Create new pet entry in DB
+      if (generatedPdfBuffer) {
+        try {
+          // Upload the generated PDF
+          const generatedPdfUploadResult = await uploadBufferToCloudinary(
+            generatedPdfBuffer,
+            "pets/pdfs",
+            "raw",
+            `generated_${userid}_${name.replace(/\s+/g, "_")}_${Date.now()}`,
+            "pdf",
+          );
+          generatedPdfUrl = generatedPdfUploadResult.secure_url;
+          documentsResult["filledForm"] = generatedPdfUrl;
+
+          // Add generated PDF to sources for merging
+          sourcesForMerging.push({
+            buffer: generatedPdfBuffer,
+            mimetype: "application/pdf", // It's definitely a PDF
+          });
+
+          // Only merge if there are multiple sources now
+          if (sourcesForMerging.length > 1) {
+            console.log(
+              `Merging ${sourcesForMerging.length} sources (from buffers).`,
+            );
+            // Use the new function with PdfSource objects
+            const mergedPdfBuffer =
+              await mergePDFsWithBuffers(sourcesForMerging); // <--- Use updated function
+
+            // Upload the merged PDF
+            const mergedPdfUploadResult = await uploadBufferToCloudinary(
+              mergedPdfBuffer,
+              "pets/pdfs",
+              "raw",
+              `merged_${userid}_${name.replace(/\s+/g, "_")}_${Date.now()}`,
+              "pdf",
+            );
+            mergedPdfUrl = mergedPdfUploadResult.secure_url;
+            documentsResult["mergedPdf"] = mergedPdfUrl;
+          } else {
+            console.log(
+              "Single source or no sources eligible for merging found, skipping merge step.",
+            );
+          }
+        } catch (pdfError) {
+          console.error("Error during PDF upload/merge stage:", pdfError);
+          return res.status(500).json({
+            success: false,
+            error: "Failed to process or upload generated/merged PDFs.",
+          });
+        }
+      } else {
+        console.log(
+          "No generated PDF buffer, skipping PDF upload and merge steps.",
+        );
+      }
+
+      // --- 6. Prepare Final Data ---
+      let parsedMetaData = {},
+        parsedPersonalityTraits = [],
+        parsedAllergies = [],
+        parsedMedications = [];
+      try {
+        parsedMetaData = JSON.parse(metaData || "{}");
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid metaData JSON" });
+      }
+      try {
+        parsedPersonalityTraits = JSON.parse(personalityTraits || "[]");
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid personalityTraits JSON" });
+      }
+      try {
+        parsedAllergies = JSON.parse(allergies || "[]");
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid allergies JSON" });
+      }
+      try {
+        parsedMedications = JSON.parse(medications || "[]");
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid medications JSON" });
+      }
+
+      const fullMetaData = {
+        ...parsedMetaData,
+        color,
+        weight: Number(weight) || 0,
+        size,
+        age: Number(age) || 0,
+      };
+
+      // --- 7. Create Pet in Database ---
       const newPet = await petServices.createNewPet(
         userid,
         registrationNumber || null,
-        governmentRegistered || false,
+        governmentRegistered,
         name,
         species,
         breed,
-        gender || "unknown",
+        gender,
         sterilized,
-        bio || null,
-        mainImageUpload.secure_url,
-        additionalImages,
+        bio,
+        mainImageUrl!, // Assert non-null as it's checked critical earlier
+        additionalImageUrls,
         dateOfBirth,
         fullMetaData,
-        JSON.parse(personalityTraits),
-        JSON.parse(allergies) || [],
-        medications ? JSON.parse(medications) : [],
-        documents as unknown as petDocuments
+        parsedPersonalityTraits,
+        parsedAllergies,
+        parsedMedications,
+        documentsResult as unknown as petDocuments,
       );
 
-      // Final response (single JSON response, no duplicate sends)
+      // --- 8. Final Response ---
       return res.status(201).json({
         success: true,
         message: "New pet created successfully",
         pet: newPet,
-        pdfUrl: pdfUploadResult.secure_url,
+        pdfUrl: generatedPdfUrl,
+        mergedPdfUrl: mergedPdfUrl,
       });
     } catch (error) {
-      console.error("Error creating new pet:", error);
-      return res
-        .status(500)
-        .json({ success: false, error: error.message || "Server Error" });
+      console.error("Unhandled error in createNewPet:", error);
+      return res.status(500).json({
+        success: false,
+        error: "An unexpected error occurred while creating the pet.",
+      });
     }
   };
+
+  // static getAnimalData = async (req: Request, res: Response) => {
+  //   res.json(animalData);
+  // };
 }

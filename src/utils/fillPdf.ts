@@ -12,6 +12,7 @@ export async function generatePetPdf({
   dogName = "",
   dogBreed = "",
   dogColor = "",
+  dogGender = "",
   dogAge = "",
   imageUrl = "",
   vaccinationCard = "",
@@ -63,7 +64,13 @@ export async function generatePetPdf({
         console.warn(`Field ${fieldName} not found or error setting value:`, error);
       }
     };
-
+     if(dogGender === "male") {
+        dogGender = "YES"
+       setTextField("isDog",dogGender )
+     }else{
+       dogGender = "YES"
+      setTextField("isDoggess", dogGender)
+     }
     setTextField("applicantName", applicantName);
     setTextField("guardianName", guardianName);
     setTextField("residentialAddress", residentialAddress);

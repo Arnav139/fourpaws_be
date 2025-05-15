@@ -101,7 +101,6 @@ export default class PetServices {
         .from(pets)
         .orderBy(desc(pets.createdAt))
         .execute();
-      console.log(petsList)
       return petsList;
     } catch (error) {
       console.error("Error fetching all pets:", error);

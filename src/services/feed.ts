@@ -330,7 +330,6 @@ export default class FeedService {
       if (post.length === 0) {
         return null;
       }
-      console.log(post);
       return post[0];
     } catch (error) {
       console.error("Error fetching post by ID:", error);

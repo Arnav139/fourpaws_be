@@ -190,7 +190,7 @@ export default class FeedController {
           .status(401)
           .json({ success: false, message: "Unauthorized user" });
       }
-      console.log(req.files, "req.files");
+
       // Verify the user exists.
       const user = await UserService.getUser(email);
       if (!user) {
@@ -201,7 +201,7 @@ export default class FeedController {
 
       // Destructure common properties.
       const { content = "", type = "standard", ...typeSpecificData } = req.body;
-      console.log(content, type, typeSpecificData, "req.body");
+  
 
       // Validate common fields for a standard post.
       const postImageFile = (req.files as { postImage: Express.Multer.File[] })
@@ -349,7 +349,6 @@ export default class FeedController {
       let videoUrl: string = undefined;
       if (postVideoFile) {
         const videoUpload = await uploadVideoToCloudinary(postVideoFile.buffer);
-        console.log(videoUpload, "videoUpload");
         videoUrl = videoUpload.secure_url;
       }
       // Prepare metadata from type-specific fields.
@@ -452,7 +451,6 @@ export default class FeedController {
     try {
       const userId = req["user"]?.userId;
       const { postId } = req.params;
-      console.log(userId,"userId", postId,  "postId")
       if (!userId || !postId) {
         return res.status(400).json({
           success: false,

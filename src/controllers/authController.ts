@@ -5,6 +5,7 @@ import Mailer from "../utils/nodeMailer";
 import { generateAuthTokens } from "../config/token";
 import { otpToken } from "../config/common";
 import { OAuth2Client } from "google-auth-library";
+import { envConfigs } from "../config/envconfig";
 export default class authController {
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
@@ -67,7 +68,6 @@ export default class authController {
 
   static googleLogin = async (req: Request, res: Response): Promise<any> => {
     try {
-      console.log("int the google login")
       // Extract idToken from request body
       const { idToken } = req.body;
 
@@ -79,13 +79,12 @@ export default class authController {
       // Verify the idToken
       const ticket = await client.verifyIdToken({
         idToken: idToken,
-        audience:
-          "580551584454-crdo3rs03he5t7ihtvsohvlfbc34nr12.apps.googleusercontent.com", 
+        audience: envConfigs.AUDIENCE
       });
 
       // Get the payload from the verified token
       const payload = ticket.getPayload();
-      console.log(payload, "payload");
+
       if (!payload) {
         return res.status(401).json({ error: "Invalid token" });
       }

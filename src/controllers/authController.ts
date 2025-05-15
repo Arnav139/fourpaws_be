@@ -67,6 +67,7 @@ export default class authController {
 
   static googleLogin = async (req: Request, res: Response): Promise<any> => {
     try {
+      console.log("int the google login")
       // Extract idToken from request body
       const { idToken } = req.body;
 
@@ -79,7 +80,7 @@ export default class authController {
       const ticket = await client.verifyIdToken({
         idToken: idToken,
         audience:
-          "755316245934-mmstkch2le7tf48uggljo9cj7m95aj75.apps.googleusercontent.com", // Replace with your Google Client ID
+          "580551584454-crdo3rs03he5t7ihtvsohvlfbc34nr12.apps.googleusercontent.com", 
       });
 
       // Get the payload from the verified token
@@ -107,7 +108,7 @@ export default class authController {
         .status(200)
         .send({ success: true, message: "user logged  in", user });
     } catch (error) {
-      console.error("Error in verifyOtp:", error);
+      console.error("Error in google login", error);
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
   };

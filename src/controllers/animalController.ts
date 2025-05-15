@@ -57,6 +57,29 @@ export default class animalController {
     //   data: filteredData,
     // });
   };
+   
+  static getAllPetsWeb = async(req:Request, res: Response) : Promise<any> =>{
+      try {
+        const pets = await petServices.getAllPets();
+        if (!pets) {
+          return res.status(404).json({ success: false, error: "No pets found" });
+        }
+  
+        const myPets = pets.map((pet: any) => {
+          return {
+            ...pet,
+            ...pet.metaData,
+            photoUrl: pet.image,
+            mergedPdf: pet.documents?.mergedPdf,
+          };
+        });
+  
+        res.status(200).json({ success: true, data: myPets });
+      } catch (error : any) {
+          res.status(500).json({ success: false, error: "Server Error" })
+      }
+    } 
+  
 
   static getAllPets = async (req: Request, res: Response): Promise<any> => {
     try {

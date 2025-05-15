@@ -14,12 +14,12 @@ router.get("/allPetsForms", authenticateUser, animalController.getAllPets);
 router.get(
   "/records",
   validateRequest(PetValidators.validateVaccinationRecord),
-  animalController.VaccinationRecord,
+  animalController.VaccinationRecord
 );
 router.get(
   "/schedules",
   validateRequest(PetValidators.validateVaccinationSchedule),
-  animalController.VaccinationSchedule,
+  animalController.VaccinationSchedule
 );
 
 router.post(
@@ -36,7 +36,13 @@ router.post(
     { name: "sterilizationCard", maxCount: 1 },
   ]),
   validateRequest(PetValidators.validateCreateNewPet),
-  animalController.createNewPet,
+  animalController.createNewPet
+);
+
+router.get(
+  "/getAllDocs/:petId",
+  authenticateUser,
+  animalController.getMergedPdf
 );
 
 export default router;

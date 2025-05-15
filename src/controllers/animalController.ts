@@ -3,7 +3,8 @@ import petServices, { petDocuments } from "../services/pets";
 import cloudinary from "../config/cloudinary";
 import { generatePetPdf } from "../utils/fillPdf";
 import { mergePDFs } from "../utils/pdfMerger";
-import { UserService } from "../services";
+import { PetServices, UserService } from "../services";
+import { parse } from "path";
 
 export default class animalController {
   static VaccinationRecord = (req: Request, res) => {
@@ -133,177 +134,242 @@ export default class animalController {
   //   res.json(animalData);
   // };
 
-// Updated createNewPet method with optimizations
-static createNewPet = async (req: Request, res: Response): Promise<any> => {
-  try {
-    const {
-      registrationNumber,
-      governmentRegistered,
-      name,
-      species,
-      breed,
-      gender,
-      sterilized,
-      bio,
-      dateOfBirth,
-      metaData,
-      personalityTraits,
-      allergies,
-      medications,
-      color,
-      weight,
-      size,
-      age,
-      applicantName,
-      guardianName,
-      residentialAddress
-    } = req.body;
+  // Updated createNewPet method with optimizations
+  static createNewPet = async (req: Request, res: Response): Promise<any> => {
+    try {
+      const {
+        registrationNumber,
+        governmentRegistered,
+        name,
+        species,
+        breed,
+        gender,
+        sterilized,
+        bio,
+        dateOfBirth,
+        metaData,
+        personalityTraits,
+        allergies,
+        medications,
+        color,
+        weight,
+        size,
+        age,
+      } = req.body;
 
-    const userid = req["user"]["userId"];
-    const email = req["user"]["email"];
 
-    if (!governmentRegistered || !name || !species || !breed || !metaData || !req.files || !("image" in req.files)) {
-      return res.status(400).json({ success: false, error: "Required fields missing" });
-    }
+      const userid = req["user"]["userId"];
+      const email = req["user"]["email"];
 
-    const parsedMetaData = JSON.parse(metaData);
-    const fullMetaData = {
-      ...parsedMetaData,
-      color: color || "unknown",
-      weight: Number(weight) || 0,
-      size: size || "small",
-      age: Number(age) || 0,
-      applicantName,
-      guardianName: guardianName || "",
-      residentialAddress: residentialAddress || "",
-    };
-
-    // Upload main image
-    const imageFile = (req.files as any).image[0];
-    const mainImageDataUri = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString("base64")}`;
-    const mainImageUploadPromise = cloudinary.uploader.upload(mainImageDataUri, { folder: "pets" });
-
-    // Upload additional images in parallel
-    const additionalImagesFiles = (req.files as any).additionalImages || [];
-    const additionalImageUploadPromises = additionalImagesFiles.map((file: any) => {
-      const uri = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-      return cloudinary.uploader.upload(uri, { folder: "pets/additional" });
-    });
-
-    // Upload documents in parallel
-    const documentFields = [
-      "veterinaryHealthCard",
-      "vaccinationCard",
-      "passport",
-      "imageWithOwner",
-      "ownerIdProof",
-      "sterilizationCard"
-    ];
-
-    const documentUploadPromises: Promise<any>[] = [];
-    const documentKeys: string[] = [];
-
-    for (const field of documentFields) {
-      const file = (req.files as any)?.[field]?.[0];
-      if (file) {
-        const isPDF = file.mimetype === "application/pdf";
-        const uri = isPDF
-          ? `data:application/pdf;base64,${file.buffer.toString("base64")}`
-          : `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-        documentUploadPromises.push(
-          cloudinary.uploader.upload(uri, {
-            folder: "pets/documents",
-            resource_type: isPDF ? "raw" : "image",
-            format: isPDF ? "pdf" : undefined,
-          })
-        );
-        documentKeys.push(field);
+      if (
+        !governmentRegistered ||
+        !name ||
+        !species ||
+        !breed ||
+        !metaData ||
+        !req.files ||
+        !("image" in req.files)
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Required fields missing" });
       }
+
+      const parsedMetaData = JSON.parse(metaData);
+      const fullMetaData = {
+        ...parsedMetaData,
+        // color: color || "unknown",
+        // weight: Number(weight) || 0,
+        // size: size || "small",
+        // age: Number(age) || 0,
+        // applicantName,
+        // guardianName: guardianName || "",
+        // residentialAddress: residentialAddress || "",
+      };
+
+      // Upload main image
+      const imageFile = (req.files as any).image[0];
+      const mainImageDataUri = `data:${
+        imageFile.mimetype
+      };base64,${imageFile.buffer.toString("base64")}`;
+      const mainImageUploadPromise = cloudinary.uploader.upload(
+        mainImageDataUri,
+        { folder: "pets" }
+      );
+
+      // Upload additional images in parallel
+      const additionalImagesFiles = (req.files as any).additionalImages || [];
+      const additionalImageUploadPromises = additionalImagesFiles.map(
+        (file: any) => {
+          const uri = `data:${file.mimetype};base64,${file.buffer.toString(
+            "base64"
+          )}`;
+          return cloudinary.uploader.upload(uri, { folder: "pets/additional" });
+        }
+      );
+
+      // Upload documents in parallel
+      const documentFields = [
+        "veterinaryHealthCard",
+        "vaccinationCard",
+        "passport",
+        "imageWithOwner",
+        "ownerIdProof",
+        "sterilizationCard",
+      ];
+
+      const documentUploadPromises: Promise<any>[] = [];
+      const documentKeys: string[] = [];
+
+      for (const field of documentFields) {
+        const file = (req.files as any)?.[field]?.[0];
+        if (file) {
+          const isPDF = file.mimetype === "application/pdf";
+          const uri = isPDF
+            ? `data:application/pdf;base64,${file.buffer.toString("base64")}`
+            : `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+          documentUploadPromises.push(
+            cloudinary.uploader.upload(uri, {
+              folder: "pets/documents",
+              resource_type: isPDF ? "raw" : "image",
+              format: isPDF ? "pdf" : undefined,
+            })
+          );
+          documentKeys.push(field);
+        }
+      }
+
+      // Generate filled form PDF while uploads happen
+      const pdfBuffer = await generatePetPdf({
+        applicantName : parsedMetaData.applicantName,
+        guardianName : parsedMetaData.guardianName,
+        residentialAddress : parsedMetaData.residentialAddress,
+        contact: email,
+        dogName: name,
+        dogBreed: breed,
+        dogColor: parsedMetaData.color,
+        dogAge: parsedMetaData.age.toString(),
+        dogGender: gender,
+        vaccinationCard: "Yes",
+        sterilizaed: sterilized ? "Yes" : "No",
+        imageUrl :(await mainImageUploadPromise).secure_url
+      });
+
+      // Upload the filled PDF to Cloudinary (optional)
+      const dataUri = `data:application/pdf;base64,${pdfBuffer.toString(
+        "base64"
+      )}`;
+      const filledFormUploadPromise = cloudinary.uploader.upload(dataUri, {
+        resource_type: "raw",
+        folder: "pets/pdfs",
+        format: "pdf",
+      });
+
+      // Wait for all uploads to complete
+      const [
+        mainImageUpload,
+        additionalImageUploads,
+        documentUploads,
+        filledFormUpload,
+      ] = await Promise.all([
+        mainImageUploadPromise,
+        Promise.all(additionalImageUploadPromises),
+        Promise.all(documentUploadPromises),
+        filledFormUploadPromise,
+      ]);
+
+      const additionalImages = additionalImageUploads.map(
+        (upload) => upload.secure_url
+      );
+      const documents: Record<string, string> = {};
+      documentUploads.forEach((upload, index) => {
+        documents[documentKeys[index]] = upload.secure_url;
+      });
+      documents["filledForm"] = filledFormUpload.secure_url;
+
+      // Save new pet to DB
+      const newPet = await petServices.createNewPet(
+        userid,
+        registrationNumber || null,
+        governmentRegistered || false,
+        name,
+        species,
+        breed,
+        gender || "unknown",
+        sterilized,
+        bio || null,
+        mainImageUpload.secure_url,
+        additionalImages,
+        dateOfBirth,
+        fullMetaData,
+        JSON.parse(personalityTraits),
+        JSON.parse(allergies || "[]"),
+        medications ? JSON.parse(medications) : [],
+        documents as unknown as petDocuments
+      );
+
+      // Merge all relevant PDFs (filled form first)
+      const mergeTargets = [
+        filledFormUpload.secure_url,
+        ...Object.values(documents).filter(
+          (url) => url !== filledFormUpload.secure_url
+        ),
+      ];
+      const mergedPdfBuffer = await mergePDFs(mergeTargets);
+      const mergedPdfBase64 = mergedPdfBuffer.toString("base64");
+
+      return res.status(201).json({
+        success: true,
+        message: "Pet created successfully", 
+        newPet,
+        mergedPdfBase64, 
+      });
+    } catch (error: any) {
+      console.error("Error creating new pet:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: error.message || "Server Error" });
+    }
+  };
+
+  static getMergedPdf = async (req: Request, res: Response): Promise<any> => {
+    const { petId } = req.params;
+
+    if (!petId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "petId is required" });
     }
 
-    // Generate filled form PDF while uploads happen
-    const pdfBuffer = await generatePetPdf({
-      applicantName,
-      guardianName,
-      residentialAddress,
-      contact: email,
-      dogName: name,
-      dogBreed: breed,
-      dogColor: fullMetaData.color,
-      dogAge: fullMetaData.age.toString(),
-      dogGender: gender,
-      vaccinationCard: "Yes",
-      sterilizaed: sterilized ? "Yes" : "No",
-    });
+    const getAlldocs = await PetServices.getAllDocs(parseInt(petId));
+    if (!getAlldocs) {
+      return res
+        .status(400)
+        .json({ success: false, message: "unable to fetch all docs" });
+    }
 
-    // Upload the filled PDF to Cloudinary (optional)
-    const dataUri = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
-    const filledFormUploadPromise = cloudinary.uploader.upload(dataUri, {
-      resource_type: "raw",
-      folder: "pets/pdfs",
-      format: "pdf",
-    });
+    const documents = getAlldocs.documents;
 
-    // Wait for all uploads to complete
-    const [
-      mainImageUpload,
-      additionalImageUploads,
-      documentUploads,
-      filledFormUpload
-    ] = await Promise.all([
-      mainImageUploadPromise,
-      Promise.all(additionalImageUploadPromises),
-      Promise.all(documentUploadPromises),
-      filledFormUploadPromise
-    ]);
+    const docUrls: string[] = [
+    documents.filledForm, 
+    documents.passport,
+    documents.veterinaryHealthCard,
+    documents.vaccinationCard,
+    documents.ownerIdProof,
+    documents.imageWithOwner,
+    documents.sterilizationCard,
+  ].filter(Boolean);
 
-    const additionalImages = additionalImageUploads.map(upload => upload.secure_url);
-    const documents: Record<string, string> = {};
-    documentUploads.forEach((upload, index) => {
-      documents[documentKeys[index]] = upload.secure_url;
-    });
-    documents["filledForm"] = filledFormUpload.secure_url;
-
-    // Save new pet to DB
-    const newPet = await petServices.createNewPet(
-      userid,
-      registrationNumber || null,
-      governmentRegistered || false,
-      name,
-      species,
-      breed,
-      gender || "unknown",
-      sterilized,
-      bio || null,
-      mainImageUpload.secure_url,
-      additionalImages,
-      dateOfBirth,
-      fullMetaData,
-      JSON.parse(personalityTraits),
-      JSON.parse(allergies || "[]"),
-      medications ? JSON.parse(medications) : [],
-      documents as unknown as petDocuments
-    );
-
-    // Merge all relevant PDFs (filled form first)
-    const mergeTargets = [
-      filledFormUpload.secure_url,
-      ...Object.values(documents).filter(url => url !== filledFormUpload.secure_url)
-    ];
-    const mergedPdfBuffer = await mergePDFs(mergeTargets);
+  try {
+    const mergedPdfBuffer = await mergePDFs(docUrls);
     const mergedPdfBase64 = mergedPdfBuffer.toString("base64");
 
-    // Send response
-    return res.status(200).json({
-      success: true,
-      message: "Pet created successfully",
-      newPet,
-      mergedPdfBase64, // Frontend can handle the download
-    });
-
-  } catch (error: any) {
-    console.error("Error creating new pet:", error);
-    return res.status(500).json({ success: false, error: error.message || "Server Error" });
+   return res.status(200).json({success : true, message: "merged pdf fetched successfully", mergedPdfBase64})
+  } catch (error) {
+    console.error("Error merging PDFs:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to merge documents" });
   }
-};
+  };
 }

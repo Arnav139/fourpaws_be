@@ -8,7 +8,12 @@ import { OAuth2Client } from "google-auth-library";
 export default class authController {
   static verifyOtp: any = async (req: Request, res: Response) => {
     try {
-      const { otp } = req.body;
+      const { otp, role } = req.body;
+     
+      if(role === "admin"){
+        
+      }
+
       let userExists = await Mailer.verifyOtp(
         req["user"] as any,
         otp as string
@@ -32,10 +37,10 @@ export default class authController {
       return res.status(500).send({ success: false, error: "invalid otp" });
     }
   };
-
+  
   // post /auth/login
   static loginUser = async (req: Request, res: any) => {
-    const { email } = req.body;
+    const { email, role } = req.body;
 
     if (!email) {
       return res.status(400).json({

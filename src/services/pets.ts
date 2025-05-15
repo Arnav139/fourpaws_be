@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
 import { pets } from "../models/schema";
 
@@ -30,7 +30,7 @@ export default class PetServices {
     personalityTraits: string[],
     allergies: string[],
     medications: string[],
-    documents: petDocuments,
+    documents: petDocuments
   ): Promise<any> => {
     try {
       const newPet = await postgreDb
@@ -64,7 +64,7 @@ export default class PetServices {
   };
 
   static getPetByRegistrationNumber = async (
-    registrationNumber: string,
+    registrationNumber: string
   ): Promise<any> => {
     try {
       const pet = await postgreDb
@@ -96,11 +96,43 @@ export default class PetServices {
 
   static getAllPets = async (): Promise<any> => {
     try {
-      const petsList = await postgreDb.select().from(pets).execute();
-
+      const petsList = await postgreDb
+        .select()
+        .from(pets)
+        .orderBy(desc(pets.createdAt))
+        .execute();
+      console.log(petsList)
       return petsList;
     } catch (error) {
       console.error("Error fetching all pets:", error);
+      throw new Error("Database query failed");
+    }
+  };
+
+  static getAllDocs = async (
+    petId: number
+  ): Promise<{
+    documents: {
+      veterinaryHealthCard: string;
+      vaccinationCard: string;
+      passport: string;
+      imageWithOwner: string;
+      ownerIdProof: string;
+      sterilizationCard: string;
+      filledForm: string;
+    };
+  } | null> => {
+    try {
+      const result = await postgreDb
+        .select({ documents: pets.documents })
+        .from(pets)
+        .where(eq(pets.id, petId))
+        .limit(1)
+        .execute();
+
+      return result[0] ?? null;
+    } catch (error) {
+      console.error("Error fetching all documents:", error);
       throw new Error("Database query failed");
     }
   };

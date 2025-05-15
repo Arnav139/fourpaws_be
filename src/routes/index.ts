@@ -4,6 +4,7 @@ import pets from "./petRoutes";
 import marketplace from "./marketplaceRoutes";
 import feed from "./feedRoutes";
 import auth from "./authRoutes";
+import uploads from "./uploadsRoutes"
 
 const router = express.Router();
 
@@ -28,6 +29,10 @@ const defaultRoutes = [
     path: "/auth",
     route: auth,
   },
+  {
+    path : "/uploads",
+    route : uploads
+  }
 ];
 
 defaultRoutes.forEach((route) => {

@@ -14,7 +14,10 @@ const envVarsSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string(),
   CLOUDINARY_API_KEY: z.string(),
   CLOUDINARY_API_SECRET: z.string(),
-  AUDIENCE: z.string()
+  AUDIENCE: z.string(),
+  CASHFREE_APP_ID: z.string(),
+  CASHFREE_SECRET_KEY: z.string(),
+  CASHFREE_ENV: z.string(),
 });
 
 const envVars = envVarsSchema.parse(process.env);
@@ -28,5 +31,8 @@ export const envConfigs = {
   cloudinaryCloudName: envVars.CLOUDINARY_CLOUD_NAME,
   cloudinaryApiKey: envVars.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: envVars.CLOUDINARY_API_SECRET,
-  AUDIENCE:envVars.AUDIENCE
+  AUDIENCE: envVars.AUDIENCE,
+  CASHFREE_APP_ID : envVars.CASHFREE_APP_ID,
+  CASHFREE_SECRET_KEY : envVars.CASHFREE_SECRET_KEY,
+  CASHFREE_ENV : envVars.CASHFREE_ENV,
 };

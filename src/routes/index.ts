@@ -6,6 +6,7 @@ import feed from "./feedRoutes";
 import auth from "./authRoutes";
 import uploads from "./uploadsRoutes";
 import web from "./webRoutes";
+import payments from  "./paymentRoutes";
 
 const router = express.Router();
 
@@ -38,6 +39,10 @@ const defaultRoutes = [
     path: "/uploads",
     route: uploads,
   },
+  {
+    path : "/payments",
+    route : payments
+  }
 ];
 
 defaultRoutes.forEach((route) => {

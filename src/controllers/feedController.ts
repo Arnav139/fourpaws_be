@@ -575,48 +575,75 @@ export default class FeedController {
     }
   };
 
-  static followUser = async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { email, userId } = req.body;
+static followUser = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email, userId } = req.body;
+    const followerEmail = req["user"]["email"];
 
-      const followerEmail = req["user"]["email"];
-      if (!email && userId) {
-        return res
-          .status(400)
-          .json({ success: false, message: "email and userId is required" });
-      }
-      const verifyFollowingUser = await UserService.getUser(email);
-      const getFollowerId = await UserService.getUser(followerEmail);
-
-      if (!verifyFollowingUser || !getFollowerId) {
-        return res
-          .status(400)
-          .json({ success: false, message: "verifyFollowingUser not found " });
-      }
-      const followerId = getFollowerId.id;
-
-      // Check if follow relationship already exists
-      // const existingRelationShip = await FeedService.exisexistingRelationShip(followerId, followerId)
-
-      const following = await FeedService.createFollower(
-        followerId,
-        parseInt(userId)
-      );
-      if (!following) {
-        return res
-          .status(400)
-          .json({ success: false, message: "unable to follow the user" });
-      }
-
-      return res
-        .status(201)
-        .json({
-          success: true,
-          message: `you are following ${verifyFollowingUser.name}`,
-          following,
-        });
-    } catch (error) {
-      return res.status(500).json({ success: false, message: error.message });
+    // Validate required fields
+    if (!email || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both email and userId are required",
+      });
     }
-  };
+
+    // Get users involved
+    const userToFollow = await UserService.getUser(email);
+    const followerUser = await UserService.getUser(followerEmail);
+
+    if (!userToFollow || !followerUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User to follow or follower not found",
+      });
+    }
+
+    const followerId = followerUser.id;
+    const followingId = parseInt(userId);
+
+    // Prevent self-following
+    if (followerId === followingId) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot follow yourself",
+      });
+    }
+
+    // Check if already following
+    const existingRelationship = await FeedService.checkExistingRelationship(
+      followerId,
+      followingId
+    );
+
+    if (existingRelationship) {
+      return res.status(409).json({
+        success: false,
+        message: "You are already following this user",
+      });
+    }
+
+    // Create follower relationship
+    const following = await FeedService.createFollower(followerId, followingId);
+
+    if (!following) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to follow the user",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `You are now following ${userToFollow.name}`,
+      following,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 }

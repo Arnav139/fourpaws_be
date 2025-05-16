@@ -631,5 +631,19 @@ export default class FeedService {
       }
   }
 
-  // static existingRelationShip
+  static checkExistingRelationship = async (
+  followerId: any,
+  followingId: any
+): Promise<boolean> => {
+  const existing = await postgreDb.query.follows.findFirst({
+    where: (fields) => 
+      and(
+        eq(fields.followerId, followerId),
+        eq(fields.followingId, followingId),
+        eq(fields.isFollowing, true) // Optional if you support unfollowing
+      ),
+  });
+  return !!existing;
+};
+
 }

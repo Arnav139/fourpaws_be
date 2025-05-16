@@ -47,6 +47,7 @@ export const follows = pgTable(
     id: serial("id").primaryKey(),
     followerId: integer("follower_id").references(() => users.id),
     followingId: integer("following_id").references(() => users.id),
+    isFollowing: boolean("is_following").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -258,71 +259,6 @@ export const userCollectibles = pgTable(
   ],
 );
 
-export const products = pgTable(
-  "products",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 255 }).notNull(),
-    images: jsonb("images").$type<string[]>(),
-    price: integer("price").notNull(),
-    currency: varchar("currency", { length: 10 }).notNull().default("INR"),
-    stockCount: integer("stock_count").notNull().default(0),
-    metadata: jsonb("metadata").$type<object>(),
-    discount: integer("discount").default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [{ pk: primaryKey({ columns: [table.id] }) }]
-);
-
-// --- Order Status Enum ---
-export const orderStatusEnum = pgEnum("order_status", [
-  "pending",
-  "paid",
-  "failed",
-  "refunded",
-]);
-
-// --- Order Table ---
-export const orders = pgTable(
-  "orders",
-  {
-    id: serial("id").primaryKey(),
-    userId: integer("user_id").references(() => users.id),
-    totalAmount: integer("total_amount").notNull(),
-    status: orderStatusEnum("status").notNull().default("pending"),
-    cashfreeOrderId: varchar("cashfree_order_id", { length: 100 }).notNull(),
-    paymentSessionId: varchar("payment_session_id", { length: 100 }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [{ pk: primaryKey({ columns: [table.id] }) }]
-);
-
-// --- Order Items Table ---
-export const orderItems = pgTable(
-  "order_items",
-  {
-    id: serial("id").primaryKey(),
-    orderId: integer("order_id").references(() => orders.id),
-    productId: integer("product_id").references(() => products.id),
-    quantity: integer("quantity").notNull().default(1),
-    price: integer("price").notNull(), // unit price at time of order
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [{ pk: primaryKey({ columns: [table.id] }) }]
-);
-
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   pets: many(pets),
@@ -430,22 +366,5 @@ export const heathcheckupRealations = relations(healthcheckup, ({ one }) => ({
   pet: one(pets, {
     fields: [healthcheckup.petId],
     references: [pets.id],
-  }),
-}));
-
-export const productsRelations = relations(products, ({ many }) => ({
-  orderItems: many(orderItems),
-}));
-
-export const ordersRelations = relations(orders, ({ one, many }) => ({
-  user: one(users, { fields: [orders.userId], references: [users.id] }),
-  items: many(orderItems),
-}));
-
-export const orderItemsRelations = relations(orderItems, ({ one }) => ({
-  order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
-  product: one(products, {
-    fields: [orderItems.productId],
-    references: [products.id],
   }),
 }));

@@ -47,6 +47,7 @@ export const follows = pgTable(
     id: serial("id").primaryKey(),
     followerId: integer("follower_id").references(() => users.id),
     followingId: integer("following_id").references(() => users.id),
+    isFollowing : boolean("is_following").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

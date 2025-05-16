@@ -1,6 +1,15 @@
 import { $Type, and, desc, eq, not, sql } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
-import { comments, postLikes, posts, users } from "../models/schema";
+import {
+  collectibles,
+  comments,
+  follows,
+  pets,
+  postLikes,
+  posts,
+  userCollectibles,
+  users,
+} from "../models/schema";
 
 export default class FeedService {
   private static getPostQuery = (
@@ -538,4 +547,89 @@ export default class FeedService {
       throw new Error("Failed to fetch comments");
     }
   }
+
+  static getUserByPostId = async (postId: any) => {
+    try {
+      const user = await postgreDb
+        .selectDistinct({
+          user_id: users.id,
+          user_name: users.name,
+          email: users.email,
+          wallet_address: users.walletAddress,
+          phone_number: users.phoneNumber,
+          profile_image_url: users.profileImageUrl,
+          location: users.location,
+          bio: users.bio,
+          joined_at: users.joinedAt,
+          auth_method: users.authMethod,
+          role: users.role,
+          updated_at: users.updatedAt,
+          collectible_id: collectibles.id,
+          collectible_name: collectibles.name,
+          collectible_description: collectibles.description,
+          collectible_price: collectibles.price,
+          collectible_rarity: collectibles.rarity,
+          collectible_category: collectibles.category,
+          collectible_count: collectibles.count,
+          collectible_created_at: collectibles.createdAt,
+          collectible_updated_at: collectibles.updatedAt,
+          pet_id: pets.id,
+          registration_number: pets.registrationNumber,
+          government_registered: pets.governmentRegistered,
+          pet_name: pets.name,
+          guardian_name: pets.guardianName,
+          species: pets.species,
+          breed: pets.breed,
+          gender: pets.gender,
+          sterilized: pets.sterilized,
+          pet_bio: pets.bio,
+          pet_image: pets.image,
+          additional_images: pets.additionalImages,
+          date_of_birth: pets.dateOfBirth,
+          allergies: pets.allergies,
+          medications: pets.medications,
+          pet_created_at: pets.createdAt,
+          documents: pets.documents,
+          post_id: posts.id,
+          post_content: posts.content,
+          post_media: posts.media,
+          post_type: posts.type,
+          post_metadata: posts.metadata,
+          post_created_at: posts.createdAt,
+          post_updated_at: posts.updatedAt,
+        })
+        .from(users)
+        .leftJoin(userCollectibles, eq(users.id, userCollectibles.userId))
+        .leftJoin(
+          collectibles,
+          eq(userCollectibles.collectibleId, collectibles.id)
+        )
+        .leftJoin(pets, eq(users.id, pets.ownerId))
+        .leftJoin(posts, eq(users.id, posts.authorId))
+        .where(eq(posts.id, 34))
+        .orderBy(users.id, collectibles.id, pets.id, posts.id)
+        .limit(1);
+      console.log(user, "user by post Id");
+      return user;
+    } catch (error: any) {
+      console.log("db query failed", error);
+      throw new Error("Failed to fetch user");
+    }
+  };
+
+  static createFollower = async (followerId : number, followingId: number ) =>{
+      try {
+         const [follow] = await postgreDb
+          .insert(follows)
+          .values({ followerId, followingId })
+          .returning({ followId: follows.id });
+          console.log(follow, "follow")
+          return follow;
+      } catch (error) {
+         console.log("",error)
+         throw new Error("Failed to create relation");
+      }
+  }
+
+  // static existingRelationShip
 }

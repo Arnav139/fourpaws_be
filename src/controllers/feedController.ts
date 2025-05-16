@@ -201,7 +201,6 @@ export default class FeedController {
 
       // Destructure common properties.
       const { content = "", type = "standard", ...typeSpecificData } = req.body;
-  
 
       // Validate common fields for a standard post.
       const postImageFile = (req.files as { postImage: Express.Multer.File[] })
@@ -320,11 +319,12 @@ export default class FeedController {
       let imageUrl: string = undefined;
       if (postImageFile) {
         try {
-          const { data: compressedImageStream, format } = await compressImageToUnder2MB(
-            postImageFile.buffer,
-            postImageFile.mimetype
-          );
-      
+          const { data: compressedImageStream, format } =
+            await compressImageToUnder2MB(
+              postImageFile.buffer,
+              postImageFile.mimetype
+            );
+
           const uploadResult = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
               {
@@ -339,7 +339,7 @@ export default class FeedController {
             );
             compressedImageStream.pipe(uploadStream);
           });
-      
+
           imageUrl = (uploadResult as any).secure_url;
         } catch (err) {
           console.error("Image compression/upload failed:", err);
@@ -573,5 +573,41 @@ export default class FeedController {
       console.error("Error adding comment:", error);
       res.status(500).json({ success: false, error: "Internal server error" });
     }
+  };
+
+  static followUser = async (req: Request, res: Response): Promise<any> => {
+   try {
+     const { email, userId } = req.body;
+     const followerEmail = req["users"]["email"];
+     console.log(followerEmail, "email")
+     if (!email && userId) {
+       return res
+         .status(400)
+         .json({ success: false, message: "email and userId is required" });
+     }
+     const verifyFollowingUser = await UserService.getUser(email);
+     const getFollowerId = await  UserService.getUser(followerEmail);
+     console.log(verifyFollowingUser, "verified following User")
+     if (!verifyFollowingUser || !getFollowerId) {
+       return res
+         .status(400)
+         .json({ success: false, message: "verifyFollowingUser not found " });
+     }
+     const following_id  = verifyFollowingUser.id;
+     const followerId = getFollowerId.id;
+ 
+     // Check if follow relationship already exists
+       // const existingRelationShip = await FeedService.exisexistingRelationShip(followerId, followerId)
+     
+     const following = await FeedService.createFollower(followerEmail, following_id);
+     if(!following){
+       return res.status(400).json({success : false, message :"unable to follow the user"})
+     }
+ 
+     return res.status(201).json({success : true, message :`you are following ${verifyFollowingUser.name}`, following})
+ 
+   } catch (error) {
+     return res.status(500).json({success : false, message : error.message})
+   }
   };
 }

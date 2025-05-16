@@ -21,4 +21,10 @@ router.post(
   userController.updateUser
 );
 
+router.get(
+  "/getUserId/:postId",
+  authenticateUser,
+  userController.getUserByPostId
+);
+
 export default router;

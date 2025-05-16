@@ -5,6 +5,7 @@ import { authenticateUser } from "../middlewares";
 import upload from "../middlewares/multer";
 import { checkFileSizeByType } from "../middlewares/checkFileSizeByType";
 import { check } from "drizzle-orm/gel-core";
+import { FeeConflictError } from "viem";
 
 const router = express.Router();
 
@@ -41,5 +42,7 @@ router.post(
   ]),
   FeedController.createPost,
 );
+
+router.post("/followUser" , authenticateUser, FeedController.followUser)
 
 export default router;
